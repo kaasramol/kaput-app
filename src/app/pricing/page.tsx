@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Check, ArrowRight, HelpCircle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { JsonLd, buildFaqSchema } from "@/components/seo/JsonLd";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -97,6 +98,7 @@ const faqs = [
 export default function Pricing() {
   return (
     <>
+      <JsonLd data={buildFaqSchema(faqs)} />
       <Navbar />
 
       {/* Hero */}
