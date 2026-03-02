@@ -1,0 +1,221 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  CreditCard,
+  Clock,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { getBookingById, getMechanicById } from '@/lib/firestore-queries';
+import { updateBookingPayment } from '@/lib/firestore-helpers';
+import { formatDateTime, formatCurrency } from '@/lib/format';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
+import { PaymentSection } from '@/components/booking/PaymentSection';
+import { CancellationModal } from '@/components/booking/CancellationModal';
+import type { Booking, BookingStatus, PaymentStatus, MechanicProfile } from '@/types';
+
+interface BookingDetailContentProps {
+  bookingId: string;
+}
+
+const STATUS_CONFIG: Record<BookingStatus, { label: string; variant: 'info' | 'warning' | 'success' | 'default'; icon: typeof Calendar }> = {
+  confirmed: { label: 'Confirmed', variant: 'info', icon: Calendar },
+  in_progress: { label: 'In Progress', variant: 'warning', icon: Clock },
+  completed: { label: 'Completed', variant: 'success', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelled', variant: 'default', icon: XCircle },
+};
+
+const PAYMENT_CONFIG: Record<PaymentStatus, { label: string; variant: 'warning' | 'success' | 'error' }> = {
+  pending: { label: 'Payment Pending', variant: 'warning' },
+  paid: { label: 'Paid', variant: 'success' },
+  refunded: { label: 'Refunded', variant: 'error' },
+};
+
+export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
+  const { user } = useAuth();
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [mechanic, setMechanic] = useState<MechanicProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showCancel, setShowCancel] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const b = await getBookingById(bookingId);
+        if (!cancelled && b) {
+          setBooking(b);
+          const m = await getMechanicById(b.mechanicId);
+          if (!cancelled) setMechanic(m);
+        }
+      } catch {
+        if (!cancelled) setError('Failed to load booking details.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [bookingId]);
+
+  const handlePaymentComplete = useCallback(async (stripePaymentId: string) => {
+    if (!booking) return;
+    try {
+      await updateBookingPayment(booking.id, stripePaymentId);
+      setBooking((prev) => prev ? { ...prev, paymentStatus: 'paid', stripePaymentId } : null);
+    } catch {
+      // Payment recorded on Stripe side, will reconcile
+    }
+  }, [booking]);
+
+  const handleCancelled = useCallback(() => {
+    setBooking((prev) => prev ? { ...prev, status: 'cancelled' } : null);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+        <p className="text-lg font-medium text-text-primary">{error ?? 'Booking not found'}</p>
+        <Link href="/dashboard">
+          <Button variant="secondary" size="sm" className="mt-4">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const status = STATUS_CONFIG[booking.status];
+  const payment = PAYMENT_CONFIG[booking.paymentStatus];
+  const isOwner = user?.uid === booking.carOwnerId;
+  const canCancel = isOwner && (booking.status === 'confirmed');
+  const showPayment = isOwner && booking.paymentStatus === 'pending' && booking.status !== 'cancelled';
+  const StatusIcon = status.icon;
+
+  return (
+    <div className="space-y-8">
+      {/* Back link */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Link>
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <StatusIcon className="h-6 w-6 text-accent-light" />
+            <h1 className="text-2xl font-bold text-text-primary">Booking Details</h1>
+          </div>
+          <p className="mt-1 text-sm text-text-secondary">
+            Booking ID: {booking.id.slice(0, 8)}...
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={status.variant}>{status.label}</Badge>
+          <Badge variant={payment.variant}>{payment.label}</Badge>
+        </div>
+      </div>
+
+      {/* Info cards */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-5 w-5 text-accent-light" />
+            <div>
+              <p className="text-xs text-text-muted">Scheduled For</p>
+              <p className="font-medium text-text-primary">{formatDateTime(booking.scheduledAt)}</p>
+              <Badge variant="default" className="mt-1">{booking.type}</Badge>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-accent-light" />
+            <div>
+              <p className="text-xs text-text-muted">Total Cost</p>
+              <p className="text-xl font-bold text-text-primary">{formatCurrency(booking.totalCost)}</p>
+            </div>
+          </div>
+        </Card>
+
+        {mechanic && (
+          <Card className="p-4 sm:col-span-2">
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-accent-light" />
+              <div>
+                <p className="text-xs text-text-muted">Mechanic</p>
+                <Link
+                  href={`/mechanic/${mechanic.id}`}
+                  className="font-medium text-text-primary hover:text-accent transition-colors"
+                >
+                  {mechanic.businessName}
+                </Link>
+                <p className="text-sm text-text-secondary">{mechanic.address}</p>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {/* Cancellation reason */}
+      {booking.status === 'cancelled' && booking.cancellationReason && (
+        <Card className="border-error/30 bg-error/5 p-4">
+          <p className="text-sm font-medium text-error">Cancellation Reason</p>
+          <p className="mt-1 text-sm text-text-primary">{booking.cancellationReason}</p>
+        </Card>
+      )}
+
+      {/* Payment */}
+      {showPayment && (
+        <PaymentSection
+          amount={booking.totalCost}
+          bookingId={booking.id}
+          carOwnerId={booking.carOwnerId}
+          mechanicId={booking.mechanicId}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
+
+      {/* Actions */}
+      {canCancel && (
+        <div className="flex justify-end">
+          <Button variant="danger" size="sm" onClick={() => setShowCancel(true)}>
+            Cancel Booking
+          </Button>
+        </div>
+      )}
+
+      {/* Cancel modal */}
+      <CancellationModal
+        open={showCancel}
+        onClose={() => setShowCancel(false)}
+        bookingId={booking.id}
+        onCancelled={handleCancelled}
+      />
+    </div>
+  );
+}

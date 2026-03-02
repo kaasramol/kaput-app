@@ -84,6 +84,12 @@ export async function getIncomingQuotes(): Promise<Quote[]> {
   return snap.docs.map((d) => d.data() as Quote);
 }
 
+export async function getBookingById(bookingId: string): Promise<Booking | null> {
+  const snap = await getDoc(doc(getFirebaseDb(), 'bookings', bookingId));
+  if (!snap.exists()) return null;
+  return snap.data() as Booking;
+}
+
 export async function getBookingsByMechanic(mechanicId: string): Promise<Booking[]> {
   const q = query(
     collection(getFirebaseDb(), 'bookings'),

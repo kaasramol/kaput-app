@@ -8,7 +8,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
-import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse } from '@/types';
+import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse, Booking, BookingType, Message } from '@/types';
 
 export async function getUserDoc(uid: string): Promise<User | null> {
   const snap = await getDoc(doc(getFirebaseDb(), 'users', uid));
@@ -177,4 +177,79 @@ export async function updateBookingStatus(
     updates.cancelledAt = serverTimestamp();
   }
   await updateDoc(ref, updates);
+}
+
+interface CreateBookingParams {
+  quoteId: string;
+  carOwnerId: string;
+  mechanicId: string;
+  vehicleId: string;
+  scheduledAt: Date;
+  type: BookingType;
+  totalCost: number;
+}
+
+export async function createBookingDoc(params: CreateBookingParams): Promise<Booking> {
+  const db = getFirebaseDb();
+  const ref = doc(collection(db, 'bookings'));
+  const bookingDoc: Booking = {
+    id: ref.id,
+    quoteId: params.quoteId,
+    carOwnerId: params.carOwnerId,
+    mechanicId: params.mechanicId,
+    vehicleId: params.vehicleId,
+    scheduledAt: params.scheduledAt as unknown as Booking['scheduledAt'],
+    type: params.type,
+    status: 'confirmed',
+    totalCost: params.totalCost,
+    paymentStatus: 'pending',
+    createdAt: serverTimestamp() as Booking['createdAt'],
+  };
+  await setDoc(ref, bookingDoc);
+  return bookingDoc;
+}
+
+export async function updateBookingPayment(
+  bookingId: string,
+  stripePaymentId: string
+): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, 'bookings', bookingId), {
+    paymentStatus: 'paid',
+    stripePaymentId,
+  });
+}
+
+export async function cancelBooking(
+  bookingId: string,
+  reason: string
+): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, 'bookings', bookingId), {
+    status: 'cancelled',
+    cancellationReason: reason,
+    cancelledAt: serverTimestamp(),
+  });
+}
+
+interface SendMessageParams {
+  bookingId: string;
+  senderId: string;
+  text: string;
+  imageUrl?: string;
+}
+
+export async function sendMessage(params: SendMessageParams): Promise<Message> {
+  const db = getFirebaseDb();
+  const ref = doc(collection(db, 'messages'));
+  const messageDoc: Message = {
+    id: ref.id,
+    bookingId: params.bookingId,
+    senderId: params.senderId,
+    text: params.text,
+    ...(params.imageUrl && { imageUrl: params.imageUrl }),
+    createdAt: serverTimestamp() as Message['createdAt'],
+  };
+  await setDoc(ref, messageDoc);
+  return messageDoc;
 }

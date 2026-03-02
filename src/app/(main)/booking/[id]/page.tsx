@@ -1,14 +1,20 @@
 import type { Metadata } from 'next';
+import { BookingDetailContent } from '@/components/booking/BookingDetailContent';
 
 export const metadata: Metadata = {
   title: 'Booking Details | Kaput',
 };
 
-export default function BookingDetailPage() {
+interface BookingDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function BookingDetailPage({ params }: BookingDetailPageProps) {
+  const { id } = await params;
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-text-primary">Booking Details</h1>
-      <p className="mt-2 text-text-secondary">Track your appointment and payment status.</p>
+    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+      <BookingDetailContent bookingId={id} />
     </div>
   );
 }

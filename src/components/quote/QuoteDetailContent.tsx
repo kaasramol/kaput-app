@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { QuoteResponseCard } from '@/components/quote/QuoteResponseCard';
-import type { Quote, QuoteStatus } from '@/types';
+import { CreateBookingModal } from '@/components/booking/CreateBookingModal';
+import type { Quote, QuoteStatus, QuoteResponse } from '@/types';
 
 interface QuoteDetailContentProps {
   quoteId: string;
@@ -30,6 +31,7 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [acceptingResponse, setAcceptingResponse] = useState<QuoteResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,14 +171,24 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
                 response={response}
                 isAccepted={quote.acceptedMechanicId === response.mechanicId}
                 canAccept={canAccept}
-                onAccept={() => {
-                  // TODO: Implement accept quote mutation
-                }}
+                onAccept={() => setAcceptingResponse(response)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Booking modal */}
+      {acceptingResponse && (
+        <CreateBookingModal
+          open={!!acceptingResponse}
+          onClose={() => setAcceptingResponse(null)}
+          quoteId={quote.id}
+          vehicleId={quote.vehicleId}
+          carOwnerId={quote.carOwnerId}
+          response={acceptingResponse}
+        />
+      )}
     </div>
   );
 }
