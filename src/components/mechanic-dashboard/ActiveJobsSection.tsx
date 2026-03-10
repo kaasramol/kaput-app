@@ -1,8 +1,12 @@
 'use client';
 
-import { Calendar, Wrench } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { Calendar, Wrench, Play, CheckCircle2, MessageSquare } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { updateBookingStatus } from '@/lib/firestore-helpers';
 import { formatDate, formatCurrency } from '@/lib/format';
 import type { Booking, BookingStatus } from '@/types';
 
@@ -17,11 +21,24 @@ const STATUS_BADGE: Record<BookingStatus, { label: string; variant: 'info' | 'wa
   cancelled: { label: 'Cancelled', variant: 'default' },
 };
 
-export function ActiveJobsSection({ bookings }: ActiveJobsSectionProps) {
+export function ActiveJobsSection({ bookings: initialBookings }: ActiveJobsSectionProps) {
+  const [bookings, setBookings] = useState(initialBookings);
+
   const active = bookings.filter((b) => b.status === 'confirmed' || b.status === 'in_progress');
   const recent = bookings
     .filter((b) => b.status === 'completed' || b.status === 'cancelled')
     .slice(0, 5);
+
+  async function handleStatusUpdate(bookingId: string, newStatus: 'in_progress' | 'completed') {
+    try {
+      await updateBookingStatus(bookingId, newStatus);
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
+      );
+    } catch {
+      // Status update failed
+    }
+  }
 
   if (active.length === 0 && recent.length === 0) {
     return (
@@ -46,7 +63,11 @@ export function ActiveJobsSection({ bookings }: ActiveJobsSectionProps) {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-text-primary">Active Jobs</h2>
           {active.map((booking) => (
-            <BookingRow key={booking.id} booking={booking} />
+            <BookingRow
+              key={booking.id}
+              booking={booking}
+              onStatusUpdate={handleStatusUpdate}
+            />
           ))}
         </div>
       )}
@@ -62,8 +83,22 @@ export function ActiveJobsSection({ bookings }: ActiveJobsSectionProps) {
   );
 }
 
-function BookingRow({ booking }: { booking: Booking }) {
+function BookingRow({
+  booking,
+  onStatusUpdate,
+}: {
+  booking: Booking;
+  onStatusUpdate?: (bookingId: string, status: 'in_progress' | 'completed') => void;
+}) {
+  const [updating, setUpdating] = useState(false);
   const badge = STATUS_BADGE[booking.status];
+
+  async function handleUpdate(status: 'in_progress' | 'completed') {
+    if (!onStatusUpdate) return;
+    setUpdating(true);
+    await onStatusUpdate(booking.id, status);
+    setUpdating(false);
+  }
 
   return (
     <Card className="p-4">
@@ -79,6 +114,40 @@ function BookingRow({ booking }: { booking: Booking }) {
         </div>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
+
+      {/* Actions for active bookings */}
+      {onStatusUpdate && (booking.status === 'confirmed' || booking.status === 'in_progress') && (
+        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+          {booking.status === 'confirmed' && (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => handleUpdate('in_progress')}
+              disabled={updating}
+            >
+              <Play className="h-3.5 w-3.5" />
+              Start Job
+            </Button>
+          )}
+          {booking.status === 'in_progress' && (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => handleUpdate('completed')}
+              disabled={updating}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Mark Complete
+            </Button>
+          )}
+          <Link href={`/chat/${booking.id}`}>
+            <Button size="sm" variant="ghost">
+              <MessageSquare className="h-3.5 w-3.5" />
+              Chat
+            </Button>
+          </Link>
+        </div>
+      )}
     </Card>
   );
 }

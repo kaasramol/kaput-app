@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
-const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 }; // NYC fallback
+const DEFAULT_CENTER = { lat: 49.2827, lng: -123.1207 }; // Vancouver, BC
 const DEFAULT_ZOOM = 12;
 
 const MAP_STYLES: google.maps.MapTypeStyle[] = [

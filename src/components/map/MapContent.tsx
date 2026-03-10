@@ -12,7 +12,7 @@ import { MapFilters, type MapFilterState } from '@/components/map/MapFilters';
 import type { MechanicProfile } from '@/types';
 
 export function MapContent() {
-  const { mapRef, map, loading: mapLoading, error: mapError } = useMap();
+  const { mapRef, map, userLocation, loading: mapLoading, error: mapError } = useMap();
   const [mechanics, setMechanics] = useState<MechanicProfile[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -22,6 +22,7 @@ export function MapContent() {
     search: '',
     serviceType: null,
     minRating: 0,
+    maxDistance: 0,
   });
   const markersRef = useRef<google.maps.Marker[]>([]);
 
@@ -42,6 +43,22 @@ export function MapContent() {
     return () => { cancelled = true; };
   }, []);
 
+  // Haversine distance in km
+  function getDistanceKm(
+    lat1: number, lng1: number,
+    lat2: number, lng2: number
+  ): number {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   // Filter mechanics
   const filtered = useMemo(() => {
     return mechanics.filter((m) => {
@@ -60,9 +77,16 @@ export function MapContent() {
         }
       }
       if (filters.minRating > 0 && m.rating < filters.minRating) return false;
+      if (filters.maxDistance > 0 && userLocation && m.location) {
+        const dist = getDistanceKm(
+          userLocation.lat, userLocation.lng,
+          m.location.latitude, m.location.longitude
+        );
+        if (dist > filters.maxDistance) return false;
+      }
       return true;
     });
-  }, [mechanics, filters]);
+  }, [mechanics, filters, userLocation]);
 
   // Place markers on map
   const placeMarkers = useCallback(async () => {

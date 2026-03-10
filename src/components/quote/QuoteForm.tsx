@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { createQuoteDoc } from '@/lib/firestore-helpers';
+import { uploadQuotePhotos } from '@/lib/storage';
 import { SERVICE_CATEGORIES } from '@/lib/service-categories';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -86,8 +87,9 @@ export function QuoteForm() {
     setError(null);
 
     try {
-      // TODO: Upload photos to Firebase Storage and get URLs
-      const photoUrls: string[] = [];
+      const photoUrls = photos.length > 0
+        ? await uploadQuotePhotos(user.uid, photos)
+        : [];
 
       const quote = await createQuoteDoc({
         carOwnerId: user.uid,

@@ -11,6 +11,12 @@ import {
 import { getFirebaseDb } from '@/lib/firebase';
 import type { Vehicle, Quote, Booking, MechanicProfile, Review } from '@/types';
 
+export async function getVehicleById(vehicleId: string): Promise<Vehicle | null> {
+  const snap = await getDoc(doc(getFirebaseDb(), 'vehicles', vehicleId));
+  if (!snap.exists()) return null;
+  return snap.data() as Vehicle;
+}
+
 export async function getVehiclesByOwner(ownerId: string): Promise<Vehicle[]> {
   const q = query(
     collection(getFirebaseDb(), 'vehicles'),
@@ -98,6 +104,17 @@ export async function getBookingsByMechanic(mechanicId: string): Promise<Booking
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as Booking);
+}
+
+export async function getReviewByBooking(bookingId: string): Promise<Review | null> {
+  const q = query(
+    collection(getFirebaseDb(), 'reviews'),
+    where('bookingId', '==', bookingId),
+    limit(1)
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  return snap.docs[0].data() as Review;
 }
 
 export async function getBookingsByOwner(carOwnerId: string): Promise<Booking[]> {

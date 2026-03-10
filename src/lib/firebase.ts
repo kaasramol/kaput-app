@@ -27,3 +27,14 @@ export function getFirebaseDb() {
 export function getFirebaseStorage() {
   return getStorage(getFirebaseApp());
 }
+
+export function getFirebaseMessaging() {
+  if (typeof window === 'undefined') {
+    throw new Error('Firebase Messaging is only available in the browser');
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getMessaging } = require('firebase/messaging') as typeof import('firebase/messaging');
+  return getMessaging(getFirebaseApp());
+}
+
+export { firebaseConfig };

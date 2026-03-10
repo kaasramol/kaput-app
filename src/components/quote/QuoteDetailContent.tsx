@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Car, Wrench, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getQuoteById } from '@/lib/firestore-queries';
+import { getQuoteById, getVehicleById } from '@/lib/firestore-queries';
 import { formatDate, formatRelativeTime } from '@/lib/format';
 import { SERVICE_CATEGORIES } from '@/lib/service-categories';
 import { Card } from '@/components/ui/Card';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { QuoteResponseCard } from '@/components/quote/QuoteResponseCard';
 import { CreateBookingModal } from '@/components/booking/CreateBookingModal';
-import type { Quote, QuoteStatus, QuoteResponse } from '@/types';
+import type { Quote, QuoteStatus, QuoteResponse, Vehicle } from '@/types';
 
 interface QuoteDetailContentProps {
   quoteId: string;
@@ -31,6 +31,7 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [acceptingResponse, setAcceptingResponse] = useState<QuoteResponse | null>(null);
 
   useEffect(() => {
@@ -38,7 +39,13 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
     async function load() {
       try {
         const q = await getQuoteById(quoteId);
-        if (!cancelled) setQuote(q);
+        if (!cancelled && q) {
+          setQuote(q);
+          const v = await getVehicleById(q.vehicleId);
+          if (!cancelled) setVehicle(v);
+        } else if (!cancelled) {
+          setQuote(q);
+        }
       } catch {
         if (!cancelled) setError('Failed to load quote details.');
       } finally {
@@ -112,7 +119,9 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
             <Car className="h-5 w-5 text-accent-light" />
             <div>
               <p className="text-xs text-text-muted">Vehicle</p>
-              <p className="font-medium text-text-primary">ID: {quote.vehicleId}</p>
+              <p className="font-medium text-text-primary">
+                {vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Loading...'}
+              </p>
             </div>
           </div>
         </Card>

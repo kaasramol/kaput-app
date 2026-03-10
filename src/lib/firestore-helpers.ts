@@ -3,12 +3,13 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   arrayUnion,
   collection,
   serverTimestamp,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
-import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse, Booking, BookingType, Message } from '@/types';
+import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse, Booking, BookingType, Message, Review } from '@/types';
 
 export async function getUserDoc(uid: string): Promise<User | null> {
   const snap = await getDoc(doc(getFirebaseDb(), 'users', uid));
@@ -39,6 +40,26 @@ export async function createUserDoc(params: CreateUserParams): Promise<User> {
   };
   await setDoc(doc(db, 'users', params.uid), userDoc);
   return userDoc;
+}
+
+interface UpdateUserParams {
+  displayName?: string;
+  phone?: string;
+  avatarUrl?: string;
+}
+
+export async function updateUserDoc(uid: string, params: UpdateUserParams): Promise<void> {
+  const db = getFirebaseDb();
+  const updates: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (params.displayName !== undefined) updates.displayName = params.displayName;
+  if (params.phone !== undefined) updates.phone = params.phone;
+  if (params.avatarUrl !== undefined) updates.avatarUrl = params.avatarUrl;
+  await updateDoc(doc(db, 'users', uid), updates);
+}
+
+export async function deleteVehicleDoc(vehicleId: string): Promise<void> {
+  const db = getFirebaseDb();
+  await deleteDoc(doc(db, 'vehicles', vehicleId));
 }
 
 interface CreateVehicleParams {
@@ -73,6 +94,9 @@ interface CreateMechanicProfileParams {
   address: string;
   phone: string;
   services: string[];
+  description?: string;
+  certifications?: string[];
+  hours?: Record<string, { open: string; close: string }>;
 }
 
 export async function createMechanicProfileDoc(params: CreateMechanicProfileParams): Promise<MechanicProfile> {
@@ -85,11 +109,11 @@ export async function createMechanicProfileDoc(params: CreateMechanicProfilePara
     address: params.address,
     location: { latitude: 0, longitude: 0 } as MechanicProfile['location'],
     phone: params.phone,
-    hours: {},
+    hours: params.hours ?? {},
     services: params.services,
-    certifications: [],
+    certifications: params.certifications ?? [],
     portfolioImages: [],
-    description: '',
+    description: params.description ?? '',
     rating: 0,
     reviewCount: 0,
     subscriptionStatus: 'inactive',
@@ -99,6 +123,29 @@ export async function createMechanicProfileDoc(params: CreateMechanicProfilePara
   };
   await setDoc(ref, profileDoc);
   return profileDoc;
+}
+
+interface UpdateMechanicProfileParams {
+  description?: string;
+  services?: string[];
+  certifications?: string[];
+  hours?: Record<string, { open: string; close: string }>;
+  portfolioImages?: string[];
+  address?: string;
+  phone?: string;
+}
+
+export async function updateMechanicProfile(mechanicId: string, params: UpdateMechanicProfileParams): Promise<void> {
+  const db = getFirebaseDb();
+  const updates: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (params.description !== undefined) updates.description = params.description;
+  if (params.services !== undefined) updates.services = params.services;
+  if (params.certifications !== undefined) updates.certifications = params.certifications;
+  if (params.hours !== undefined) updates.hours = params.hours;
+  if (params.portfolioImages !== undefined) updates.portfolioImages = params.portfolioImages;
+  if (params.address !== undefined) updates.address = params.address;
+  if (params.phone !== undefined) updates.phone = params.phone;
+  await updateDoc(doc(db, 'mechanics', mechanicId), updates);
 }
 
 interface CreateQuoteParams {
@@ -229,6 +276,52 @@ export async function cancelBooking(
     status: 'cancelled',
     cancellationReason: reason,
     cancelledAt: serverTimestamp(),
+  });
+}
+
+interface CreateReviewParams {
+  bookingId: string;
+  carOwnerId: string;
+  mechanicId: string;
+  rating: number;
+  comment: string;
+}
+
+export async function createReviewDoc(params: CreateReviewParams): Promise<Review> {
+  const db = getFirebaseDb();
+  const ref = doc(collection(db, 'reviews'));
+  const reviewDoc: Review = {
+    id: ref.id,
+    bookingId: params.bookingId,
+    carOwnerId: params.carOwnerId,
+    mechanicId: params.mechanicId,
+    rating: params.rating,
+    comment: params.comment,
+    flagged: false,
+    createdAt: serverTimestamp() as Review['createdAt'],
+  };
+  await setDoc(ref, reviewDoc);
+
+  // Update mechanic's rating and review count
+  const mechanicRef = doc(db, 'mechanics', params.mechanicId);
+  const mechanicSnap = await getDoc(mechanicRef);
+  if (mechanicSnap.exists()) {
+    const mechanic = mechanicSnap.data() as MechanicProfile;
+    const newCount = mechanic.reviewCount + 1;
+    const newRating = ((mechanic.rating * mechanic.reviewCount) + params.rating) / newCount;
+    await updateDoc(mechanicRef, {
+      rating: Math.round(newRating * 10) / 10,
+      reviewCount: newCount,
+    });
+  }
+
+  return reviewDoc;
+}
+
+export async function replyToReview(reviewId: string, reply: string): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, 'reviews', reviewId), {
+    mechanicReply: reply,
   });
 }
 

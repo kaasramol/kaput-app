@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Settings } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicDashboardData } from '@/hooks/useMechanicDashboardData';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { EarningsCard } from '@/components/mechanic-dashboard/EarningsCard';
 import { IncomingQuotesSection } from '@/components/mechanic-dashboard/IncomingQuotesSection';
 import { ActiveJobsSection } from '@/components/mechanic-dashboard/ActiveJobsSection';
 import { MechanicReviewsSection } from '@/components/mechanic-dashboard/MechanicReviewsSection';
 import { QuoteResponseModal } from '@/components/mechanic-dashboard/QuoteResponseModal';
-import type { Quote } from '@/types';
+import { EditProfileModal } from '@/components/mechanic-dashboard/EditProfileModal';
+import type { Quote, MechanicProfile } from '@/types';
 
 export function MechanicDashboardContent() {
   const { user } = useAuth();
@@ -21,6 +23,8 @@ export function MechanicDashboardContent() {
 
   const [respondingQuote, setRespondingQuote] = useState<Quote | null>(null);
   const [respondedQuoteIds, setRespondedQuoteIds] = useState<Set<string>>(new Set());
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [localProfile, setLocalProfile] = useState<MechanicProfile | null>(null);
 
   const handleResponseSubmitted = useCallback(() => {
     if (respondingQuote) {
@@ -58,19 +62,21 @@ export function MechanicDashboardContent() {
     );
   }
 
+  const currentProfile = localProfile ?? profile;
+
   // Filter out quotes we already responded to in this session
   const visibleQuotes = incomingQuotes.filter((q) => !respondedQuoteIds.has(q.id));
 
   const subscriptionLabel =
-    profile.subscriptionStatus === 'active'
+    currentProfile.subscriptionStatus === 'active'
       ? 'Active'
-      : profile.subscriptionStatus === 'trial'
+      : currentProfile.subscriptionStatus === 'trial'
         ? 'Trial'
         : 'Inactive';
   const subscriptionVariant =
-    profile.subscriptionStatus === 'active'
+    currentProfile.subscriptionStatus === 'active'
       ? 'success'
-      : profile.subscriptionStatus === 'trial'
+      : currentProfile.subscriptionStatus === 'trial'
         ? 'warning'
         : ('default' as const);
 
@@ -79,10 +85,16 @@ export function MechanicDashboardContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary">{profile.businessName}</h1>
+          <h1 className="text-3xl font-bold text-text-primary">{currentProfile.businessName}</h1>
           <p className="mt-1 text-text-secondary">Manage your quotes, jobs, and earnings.</p>
         </div>
-        <Badge variant={subscriptionVariant}>{subscriptionLabel} Plan</Badge>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setShowEditProfile(true)}>
+            <Settings className="h-4 w-4" />
+            Edit Profile
+          </Button>
+          <Badge variant={subscriptionVariant}>{subscriptionLabel} Plan</Badge>
+        </div>
       </div>
 
       {/* Subscription warning */}
@@ -119,10 +131,20 @@ export function MechanicDashboardContent() {
           open={!!respondingQuote}
           onClose={() => setRespondingQuote(null)}
           quote={respondingQuote}
-          mechanicId={profile.id}
+          mechanicId={currentProfile.id}
           onResponseSubmitted={handleResponseSubmitted}
         />
       )}
+
+      {/* Edit profile modal */}
+      <EditProfileModal
+        open={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        profile={currentProfile}
+        onProfileUpdated={(updates) => {
+          setLocalProfile((prev) => ({ ...(prev ?? profile), ...updates } as MechanicProfile));
+        }}
+      />
     </div>
   );
 }

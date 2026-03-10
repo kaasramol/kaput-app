@@ -12,7 +12,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getBookingById, getMechanicById } from '@/lib/firestore-queries';
+import { getBookingById, getMechanicById, getReviewByBooking } from '@/lib/firestore-queries';
 import { updateBookingPayment } from '@/lib/firestore-helpers';
 import { formatDateTime, formatCurrency } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
@@ -21,7 +21,9 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { PaymentSection } from '@/components/booking/PaymentSection';
 import { CancellationModal } from '@/components/booking/CancellationModal';
-import type { Booking, BookingStatus, PaymentStatus, MechanicProfile } from '@/types';
+import { ReviewForm } from '@/components/booking/ReviewForm';
+import { ReviewCard } from '@/components/mechanic/ReviewCard';
+import type { Booking, BookingStatus, PaymentStatus, MechanicProfile, Review } from '@/types';
 
 interface BookingDetailContentProps {
   bookingId: string;
@@ -47,6 +49,8 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCancel, setShowCancel] = useState(false);
+  const [review, setReview] = useState<Review | null>(null);
+  const [reviewLoaded, setReviewLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,8 +59,15 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
         const b = await getBookingById(bookingId);
         if (!cancelled && b) {
           setBooking(b);
-          const m = await getMechanicById(b.mechanicId);
-          if (!cancelled) setMechanic(m);
+          const [m, existingReview] = await Promise.all([
+            getMechanicById(b.mechanicId),
+            b.status === 'completed' ? getReviewByBooking(b.id) : Promise.resolve(null),
+          ]);
+          if (!cancelled) {
+            setMechanic(m);
+            setReview(existingReview);
+            setReviewLoaded(true);
+          }
         }
       } catch {
         if (!cancelled) setError('Failed to load booking details.');
@@ -207,6 +218,32 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
             Cancel Booking
           </Button>
         </div>
+      )}
+
+      {/* Chat link */}
+      {booking.status !== 'cancelled' && (
+        <Link href={`/chat/${booking.id}`}>
+          <Button variant="secondary" size="sm">
+            Message Mechanic
+          </Button>
+        </Link>
+      )}
+
+      {/* Review section */}
+      {isOwner && booking.status === 'completed' && reviewLoaded && (
+        review ? (
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-text-primary">Your Review</h3>
+            <ReviewCard review={review} />
+          </div>
+        ) : (
+          <ReviewForm
+            bookingId={booking.id}
+            carOwnerId={booking.carOwnerId}
+            mechanicId={booking.mechanicId}
+            onReviewSubmitted={(r) => setReview(r)}
+          />
+        )
       )}
 
       {/* Cancel modal */}

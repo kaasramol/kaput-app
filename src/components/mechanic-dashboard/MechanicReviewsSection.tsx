@@ -1,15 +1,27 @@
 'use client';
 
-import { Star } from 'lucide-react';
+import { useState } from 'react';
+import { Star, MessageSquare } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { ReviewCard } from '@/components/mechanic/ReviewCard';
+import { ReviewReplyModal } from '@/components/mechanic-dashboard/ReviewReplyModal';
 import type { Review } from '@/types';
 
 interface MechanicReviewsSectionProps {
   reviews: Review[];
 }
 
-export function MechanicReviewsSection({ reviews }: MechanicReviewsSectionProps) {
+export function MechanicReviewsSection({ reviews: initialReviews }: MechanicReviewsSectionProps) {
+  const [reviews, setReviews] = useState(initialReviews);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  function handleReplied(reviewId: string, reply: string) {
+    setReviews((prev) =>
+      prev.map((r) => (r.id === reviewId ? { ...r, mechanicReply: reply } : r))
+    );
+  }
+
   if (reviews.length === 0) {
     return (
       <div className="space-y-3">
@@ -39,9 +51,32 @@ export function MechanicReviewsSection({ reviews }: MechanicReviewsSectionProps)
           <span className="text-text-muted">({reviews.length})</span>
         </div>
       </div>
-      {reviews.slice(0, 5).map((review) => (
-        <ReviewCard key={review.id} review={review} />
+      {reviews.slice(0, 10).map((review) => (
+        <div key={review.id} className="space-y-2">
+          <ReviewCard review={review} />
+          {!review.mechanicReply && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyingTo(review.id)}
+              >
+                <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                Reply
+              </Button>
+            </div>
+          )}
+        </div>
       ))}
+
+      {replyingTo && (
+        <ReviewReplyModal
+          open={!!replyingTo}
+          onClose={() => setReplyingTo(null)}
+          reviewId={replyingTo}
+          onReplied={handleReplied}
+        />
+      )}
     </div>
   );
 }

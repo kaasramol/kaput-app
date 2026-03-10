@@ -5,6 +5,9 @@ import {
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
+  updatePassword as fbUpdatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
   type User as FirebaseUser,
   type Unsubscribe,
 } from 'firebase/auth';
@@ -33,4 +36,13 @@ export async function logOut() {
 
 export function onAuthChange(callback: (user: FirebaseUser | null) => void): Unsubscribe {
   return onAuthStateChanged(getFirebaseAuth(), callback);
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user || !user.email) throw new Error('Not authenticated');
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await fbUpdatePassword(user, newPassword);
 }

@@ -10,6 +10,7 @@ export interface MapFilterState {
   search: string;
   serviceType: string | null;
   minRating: number;
+  maxDistance: number; // km, 0 = any
 }
 
 interface MapFiltersProps {
@@ -24,6 +25,13 @@ const RATING_OPTIONS = [
   { value: 3, label: '3+' },
   { value: 4, label: '4+' },
   { value: 4.5, label: '4.5+' },
+];
+
+const DISTANCE_OPTIONS = [
+  { value: 0, label: 'Any' },
+  { value: 5, label: '5 km' },
+  { value: 10, label: '10 km' },
+  { value: 25, label: '25 km' },
 ];
 
 export function MapFilters({ filters, onFilterChange, showFilters, onToggleFilters }: MapFiltersProps) {
@@ -110,12 +118,33 @@ export function MapFilters({ filters, onFilterChange, showFilters, onToggleFilte
             </div>
           </div>
 
+          {/* Distance */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-text-secondary">Max Distance</p>
+            <div className="flex gap-2">
+              {DISTANCE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => onFilterChange({ ...filters, maxDistance: opt.value })}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs transition-colors',
+                    filters.maxDistance === opt.value
+                      ? 'border-accent bg-accent/15 text-accent-light'
+                      : 'border-border text-text-secondary hover:border-accent/30'
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Clear */}
-          {(filters.serviceType !== null || filters.minRating > 0 || filters.search) && (
+          {(filters.serviceType !== null || filters.minRating > 0 || filters.maxDistance > 0 || filters.search) && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onFilterChange({ search: '', serviceType: null, minRating: 0 })}
+              onClick={() => onFilterChange({ search: '', serviceType: null, minRating: 0, maxDistance: 0 })}
             >
               <X className="h-3.5 w-3.5" />
               Clear filters
