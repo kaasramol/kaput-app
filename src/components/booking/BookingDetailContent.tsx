@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { PaymentSection } from '@/components/booking/PaymentSection';
 import { CancellationModal } from '@/components/booking/CancellationModal';
+import { AdditionalWorkApproval } from '@/components/booking/AdditionalWorkApproval';
 import { ReviewForm } from '@/components/booking/ReviewForm';
 import { ReviewCard } from '@/components/mechanic/ReviewCard';
 import type { Booking, BookingStatus, PaymentStatus, MechanicProfile, Review } from '@/types';
@@ -91,6 +92,19 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
 
   const handleCancelled = useCallback(() => {
     setBooking((prev) => prev ? { ...prev, status: 'cancelled' } : null);
+  }, []);
+
+  const handleAdditionalWorkUpdated = useCallback((requestId: string, approved: boolean) => {
+    setBooking((prev) => {
+      if (!prev) return null;
+      const requests = (prev.additionalWork ?? []).map((r) =>
+        r.id === requestId ? { ...r, status: approved ? 'approved' as const : 'declined' as const } : r
+      );
+      const approvedCost = approved
+        ? (prev.additionalWork ?? []).find((r) => r.id === requestId)?.totalCost ?? 0
+        : 0;
+      return { ...prev, additionalWork: requests, totalCost: prev.totalCost + approvedCost };
+    });
   }, []);
 
   if (loading) {
@@ -198,6 +212,17 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
           <p className="text-sm font-medium text-error">Cancellation Reason</p>
           <p className="mt-1 text-sm text-text-primary">{booking.cancellationReason}</p>
         </Card>
+      )}
+
+      {/* Additional work requests */}
+      {booking.additionalWork && booking.additionalWork.length > 0 && (
+        <AdditionalWorkApproval
+          bookingId={booking.id}
+          mechanicId={booking.mechanicId}
+          requests={booking.additionalWork}
+          isOwner={isOwner}
+          onUpdated={handleAdditionalWorkUpdated}
+        />
       )}
 
       {/* Payment */}

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { updateMechanicProfile } from '@/lib/firestore-helpers';
+import { geocodeAddress } from '@/lib/geocoding';
 import type { MechanicProfile, BusinessHours } from '@/types';
 
 const SERVICE_OPTIONS = [
@@ -82,6 +83,9 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
       .filter(Boolean);
 
     try {
+      const addressChanged = address.trim() !== profile.address;
+      const geo = addressChanged ? await geocodeAddress(address.trim()) : null;
+
       await updateMechanicProfile(profile.id, {
         description: description.trim(),
         address: address.trim(),
@@ -89,6 +93,7 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
         services,
         certifications: certsArray,
         hours: activeHours,
+        ...(geo && { latitude: geo.latitude, longitude: geo.longitude }),
       });
       onProfileUpdated({
         description: description.trim(),

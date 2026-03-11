@@ -4,6 +4,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { createUserDoc, createVehicleDoc, createMechanicProfileDoc } from '@/lib/firestore-helpers';
+import { geocodeAddress } from '@/lib/geocoding';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -125,6 +126,8 @@ export default function OnboardingPage() {
           .map((c) => c.trim())
           .filter(Boolean);
 
+        const geo = await geocodeAddress(address);
+
         await createMechanicProfileDoc({
           userId: firebaseUser.uid,
           businessName,
@@ -134,6 +137,8 @@ export default function OnboardingPage() {
           description: description.trim(),
           certifications: certsArray,
           hours: activeHours,
+          latitude: geo?.latitude,
+          longitude: geo?.longitude,
         });
         router.replace('/dashboard/mechanic');
       }

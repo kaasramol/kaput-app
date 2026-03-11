@@ -66,6 +66,36 @@ export async function sendNewReviewNotification(
   });
 }
 
+export async function sendAdditionalWorkNotification(
+  carOwnerId: string,
+  bookingId: string,
+  amount: number
+): Promise<void> {
+  await createNotification({
+    userId: carOwnerId,
+    type: 'additional_work',
+    title: 'Additional Work Requested',
+    body: `Your mechanic has requested additional work ($${amount.toFixed(2)}). Please review and approve.`,
+    data: { bookingId },
+  });
+}
+
+export async function sendAdditionalWorkResponseNotification(
+  mechanicId: string,
+  bookingId: string,
+  approved: boolean
+): Promise<void> {
+  await createNotification({
+    userId: mechanicId,
+    type: 'additional_work_response',
+    title: approved ? 'Additional Work Approved' : 'Additional Work Declined',
+    body: approved
+      ? 'The car owner approved your additional work request.'
+      : 'The car owner declined your additional work request.',
+    data: { bookingId },
+  });
+}
+
 export async function sendAppointmentReminderNotification(
   userId: string,
   bookingId: string,

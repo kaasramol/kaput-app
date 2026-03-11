@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Wrench, Play, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Calendar, Wrench, Play, CheckCircle2, MessageSquare, PlusCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { updateBookingStatus } from '@/lib/firestore-helpers';
+import { AdditionalWorkModal } from '@/components/booking/AdditionalWorkModal';
 import { formatDate, formatCurrency } from '@/lib/format';
-import type { Booking, BookingStatus } from '@/types';
+import type { Booking, BookingStatus, AdditionalWorkRequest } from '@/types';
 
 interface ActiveJobsSectionProps {
   bookings: Booking[];
@@ -91,13 +92,24 @@ function BookingRow({
   onStatusUpdate?: (bookingId: string, status: 'in_progress' | 'completed') => void;
 }) {
   const [updating, setUpdating] = useState(false);
-  const badge = STATUS_BADGE[booking.status];
+  const [showAdditionalWork, setShowAdditionalWork] = useState(false);
+  const [localBooking, setLocalBooking] = useState(booking);
+  const badge = STATUS_BADGE[localBooking.status];
+
+  const pendingRequests = (localBooking.additionalWork ?? []).filter((r) => r.status === 'pending').length;
 
   async function handleUpdate(status: 'in_progress' | 'completed') {
     if (!onStatusUpdate) return;
     setUpdating(true);
-    await onStatusUpdate(booking.id, status);
+    await onStatusUpdate(localBooking.id, status);
     setUpdating(false);
+  }
+
+  function handleAdditionalWorkSent(request: AdditionalWorkRequest) {
+    setLocalBooking((prev) => ({
+      ...prev,
+      additionalWork: [...(prev.additionalWork ?? []), request],
+    }));
   }
 
   return (
@@ -108,17 +120,22 @@ function BookingRow({
             <Calendar className="h-5 w-5 text-accent-light" />
           </div>
           <div>
-            <p className="font-medium text-text-primary">{formatDate(booking.scheduledAt)}</p>
-            <p className="text-sm text-text-secondary">{formatCurrency(booking.totalCost)}</p>
+            <p className="font-medium text-text-primary">{formatDate(localBooking.scheduledAt)}</p>
+            <p className="text-sm text-text-secondary">{formatCurrency(localBooking.totalCost)}</p>
+            {pendingRequests > 0 && (
+              <p className="text-xs text-warning">
+                {pendingRequests} additional work request{pendingRequests > 1 ? 's' : ''} pending
+              </p>
+            )}
           </div>
         </div>
         <Badge variant={badge.variant}>{badge.label}</Badge>
       </div>
 
       {/* Actions for active bookings */}
-      {onStatusUpdate && (booking.status === 'confirmed' || booking.status === 'in_progress') && (
-        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-          {booking.status === 'confirmed' && (
+      {onStatusUpdate && (localBooking.status === 'confirmed' || localBooking.status === 'in_progress') && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          {localBooking.status === 'confirmed' && (
             <Button
               size="sm"
               variant="primary"
@@ -129,18 +146,28 @@ function BookingRow({
               Start Job
             </Button>
           )}
-          {booking.status === 'in_progress' && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => handleUpdate('completed')}
-              disabled={updating}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Mark Complete
-            </Button>
+          {localBooking.status === 'in_progress' && (
+            <>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => handleUpdate('completed')}
+                disabled={updating}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Mark Complete
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setShowAdditionalWork(true)}
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                Additional Work
+              </Button>
+            </>
           )}
-          <Link href={`/chat/${booking.id}`}>
+          <Link href={`/chat/${localBooking.id}`}>
             <Button size="sm" variant="ghost">
               <MessageSquare className="h-3.5 w-3.5" />
               Chat
@@ -148,6 +175,14 @@ function BookingRow({
           </Link>
         </div>
       )}
+
+      <AdditionalWorkModal
+        open={showAdditionalWork}
+        onClose={() => setShowAdditionalWork(false)}
+        bookingId={localBooking.id}
+        carOwnerId={localBooking.carOwnerId}
+        onRequestSent={handleAdditionalWorkSent}
+      />
     </Card>
   );
 }

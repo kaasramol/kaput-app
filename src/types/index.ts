@@ -18,6 +18,9 @@ export type {
   BookingStatus,
   BookingType,
   PaymentStatus,
+  AdditionalWorkStatus,
+  AdditionalWorkItem,
+  AdditionalWorkRequest,
 } from './booking';
 export type { Review } from './review';
 export type { Message } from './message';

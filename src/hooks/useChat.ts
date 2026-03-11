@@ -16,7 +16,7 @@ interface UseChatResult {
   messages: Message[];
   loading: boolean;
   error: string | null;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, imageUrl?: string) => Promise<void>;
 }
 
 export function useChat(bookingId: string, senderId: string | undefined): UseChatResult {
@@ -54,12 +54,13 @@ export function useChat(bookingId: string, senderId: string | undefined): UseCha
   }, [bookingId]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
-      if (!senderId || !text.trim()) return;
+    async (text: string, imageUrl?: string) => {
+      if (!senderId || (!text.trim() && !imageUrl)) return;
       await sendMessageHelper({
         bookingId,
         senderId,
         text: text.trim(),
+        imageUrl,
       });
     },
     [bookingId, senderId]

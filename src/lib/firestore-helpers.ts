@@ -9,7 +9,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
-import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse, Booking, BookingType, Message, Review } from '@/types';
+import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse, Booking, BookingType, AdditionalWorkItem, AdditionalWorkRequest, Message, Review } from '@/types';
 
 export async function getUserDoc(uid: string): Promise<User | null> {
   const snap = await getDoc(doc(getFirebaseDb(), 'users', uid));
@@ -97,6 +97,8 @@ interface CreateMechanicProfileParams {
   description?: string;
   certifications?: string[];
   hours?: Record<string, { open: string; close: string }>;
+  latitude?: number;
+  longitude?: number;
 }
 
 export async function createMechanicProfileDoc(params: CreateMechanicProfileParams): Promise<MechanicProfile> {
@@ -107,7 +109,7 @@ export async function createMechanicProfileDoc(params: CreateMechanicProfilePara
     userId: params.userId,
     businessName: params.businessName,
     address: params.address,
-    location: { latitude: 0, longitude: 0 } as MechanicProfile['location'],
+    location: { latitude: params.latitude ?? 0, longitude: params.longitude ?? 0 } as MechanicProfile['location'],
     phone: params.phone,
     hours: params.hours ?? {},
     services: params.services,
@@ -133,6 +135,8 @@ interface UpdateMechanicProfileParams {
   portfolioImages?: string[];
   address?: string;
   phone?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export async function updateMechanicProfile(mechanicId: string, params: UpdateMechanicProfileParams): Promise<void> {
@@ -145,6 +149,9 @@ export async function updateMechanicProfile(mechanicId: string, params: UpdateMe
   if (params.portfolioImages !== undefined) updates.portfolioImages = params.portfolioImages;
   if (params.address !== undefined) updates.address = params.address;
   if (params.phone !== undefined) updates.phone = params.phone;
+  if (params.latitude !== undefined && params.longitude !== undefined) {
+    updates.location = { latitude: params.latitude, longitude: params.longitude };
+  }
   await updateDoc(doc(db, 'mechanics', mechanicId), updates);
 }
 
@@ -330,6 +337,65 @@ interface SendMessageParams {
   senderId: string;
   text: string;
   imageUrl?: string;
+}
+
+// --- Additional Work Approval ---
+
+interface RequestAdditionalWorkParams {
+  bookingId: string;
+  reason: string;
+  items: AdditionalWorkItem[];
+  totalCost: number;
+}
+
+export async function requestAdditionalWork(params: RequestAdditionalWorkParams): Promise<AdditionalWorkRequest> {
+  const db = getFirebaseDb();
+  const ref = doc(db, 'bookings', params.bookingId);
+  const requestId = doc(collection(db, '_ids')).id; // generate unique ID
+
+  const request: AdditionalWorkRequest = {
+    id: requestId,
+    reason: params.reason,
+    items: params.items,
+    totalCost: params.totalCost,
+    status: 'pending',
+    createdAt: serverTimestamp() as AdditionalWorkRequest['createdAt'],
+  };
+
+  await updateDoc(ref, {
+    additionalWork: arrayUnion(request),
+  });
+
+  return request;
+}
+
+export async function respondToAdditionalWork(
+  bookingId: string,
+  requestId: string,
+  approved: boolean
+): Promise<void> {
+  const db = getFirebaseDb();
+  const ref = doc(db, 'bookings', bookingId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  const booking = snap.data() as Booking;
+  const requests = booking.additionalWork ?? [];
+  const updated = requests.map((r) => {
+    if (r.id === requestId) {
+      return { ...r, status: approved ? 'approved' as const : 'declined' as const, respondedAt: new Date() };
+    }
+    return r;
+  });
+
+  const costToAdd = approved
+    ? requests.find((r) => r.id === requestId)?.totalCost ?? 0
+    : 0;
+
+  await updateDoc(ref, {
+    additionalWork: updated,
+    ...(costToAdd > 0 && { totalCost: booking.totalCost + costToAdd }),
+  });
 }
 
 export async function sendMessage(params: SendMessageParams): Promise<Message> {

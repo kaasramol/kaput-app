@@ -6,6 +6,24 @@ export type BookingType = 'immediate' | 'scheduled';
 
 export type PaymentStatus = 'pending' | 'paid' | 'refunded';
 
+export type AdditionalWorkStatus = 'pending' | 'approved' | 'declined';
+
+export interface AdditionalWorkItem {
+  description: string;
+  type: 'parts' | 'labor';
+  cost: number;
+}
+
+export interface AdditionalWorkRequest {
+  id: string;
+  reason: string;
+  items: AdditionalWorkItem[];
+  totalCost: number;
+  status: AdditionalWorkStatus;
+  createdAt: Timestamp;
+  respondedAt?: Timestamp;
+}
+
 export interface Booking {
   id: string;
   quoteId: string;
@@ -21,5 +39,6 @@ export interface Booking {
   cancellationReason?: string;
   cancelledAt?: Timestamp;
   completedAt?: Timestamp;
+  additionalWork?: AdditionalWorkRequest[];
   createdAt: Timestamp;
 }
