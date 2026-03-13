@@ -25,6 +25,10 @@ export interface MechanicProfile {
   reviewCount: number;
   subscriptionStatus: SubscriptionStatus;
   subscriptionPlan: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripeConnectAccountId?: string;
+  connectOnboardingComplete?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

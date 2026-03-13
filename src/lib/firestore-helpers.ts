@@ -339,6 +339,50 @@ interface SendMessageParams {
   imageUrl?: string;
 }
 
+// --- Subscription Management ---
+
+export async function updateMechanicSubscription(
+  mechanicId: string,
+  status: 'active' | 'trial' | 'inactive',
+  planName: string,
+  stripeSubscriptionId?: string
+): Promise<void> {
+  const db = getFirebaseDb();
+  const updates: Record<string, unknown> = {
+    subscriptionStatus: status,
+    subscriptionPlan: planName,
+    updatedAt: serverTimestamp(),
+  };
+  if (stripeSubscriptionId !== undefined) {
+    updates.stripeSubscriptionId = stripeSubscriptionId;
+  }
+  await updateDoc(doc(db, 'mechanics', mechanicId), updates);
+}
+
+export async function updateMechanicStripeCustomerId(
+  mechanicId: string,
+  stripeCustomerId: string
+): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, 'mechanics', mechanicId), {
+    stripeCustomerId,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateMechanicConnectAccount(
+  mechanicId: string,
+  stripeConnectAccountId: string,
+  onboardingComplete: boolean
+): Promise<void> {
+  const db = getFirebaseDb();
+  await updateDoc(doc(db, 'mechanics', mechanicId), {
+    stripeConnectAccountId,
+    connectOnboardingComplete: onboardingComplete,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 // --- Additional Work Approval ---
 
 interface RequestAdditionalWorkParams {

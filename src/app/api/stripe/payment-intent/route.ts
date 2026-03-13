@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-function getStripeServer(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    throw new Error('STRIPE_SECRET_KEY is not configured.');
-  }
-  return new Stripe(key, {
-    apiVersion: '2026-01-28.clover',
-  });
-}
+import { getStripeServer } from '@/lib/stripe-server';
 
 interface PaymentIntentBody {
   amount: number;
@@ -33,13 +23,9 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripeServer();
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // cents
-      currency: 'usd',
-      metadata: {
-        bookingId,
-        carOwnerId,
-        mechanicId,
-      },
+      amount: Math.round(amount * 100),
+      currency: 'cad',
+      metadata: { bookingId, carOwnerId, mechanicId },
     });
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });

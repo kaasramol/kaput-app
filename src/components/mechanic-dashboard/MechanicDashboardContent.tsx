@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { AlertCircle, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { AlertCircle, Settings, CreditCard } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicDashboardData } from '@/hooks/useMechanicDashboardData';
 import { Card } from '@/components/ui/Card';
