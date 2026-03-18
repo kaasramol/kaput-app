@@ -24,6 +24,7 @@ import { CancellationModal } from '@/components/booking/CancellationModal';
 import { AdditionalWorkApproval } from '@/components/booking/AdditionalWorkApproval';
 import { ReviewForm } from '@/components/booking/ReviewForm';
 import { ReviewCard } from '@/components/mechanic/ReviewCard';
+import { MaskedCallButton } from '@/components/booking/MaskedCallButton';
 import type { Booking, BookingStatus, PaymentStatus, MechanicProfile, Review } from '@/types';
 
 interface BookingDetailContentProps {
@@ -278,13 +279,23 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
         </div>
       )}
 
-      {/* Chat link */}
+      {/* Communication */}
       {booking.status !== 'cancelled' && (
-        <Link href={`/chat/${booking.id}`}>
-          <Button variant="secondary" size="sm">
-            Message Mechanic
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href={`/chat/${booking.id}`}>
+            <Button variant="secondary" size="sm">
+              {isOwner ? 'Message Mechanic' : 'Message Customer'}
+            </Button>
+          </Link>
+          <MaskedCallButton
+            bookingId={booking.id}
+            callerId={user?.uid ?? ''}
+            callerPhone={user?.phone ?? undefined}
+            targetRole={isOwner ? 'mechanic' : 'car_owner'}
+            mechanicId={booking.mechanicId}
+            carOwnerId={booking.carOwnerId}
+          />
+        </div>
       )}
 
       {/* Review section */}
