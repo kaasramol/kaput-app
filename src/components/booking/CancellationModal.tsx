@@ -9,13 +9,22 @@ interface CancellationModalProps {
   open: boolean;
   onClose: () => void;
   bookingId: string;
+  scheduledAt?: Date;
   onCancelled: () => void;
 }
 
-export function CancellationModal({ open, onClose, bookingId, onCancelled }: CancellationModalProps) {
+function isWithin24Hours(scheduledAt?: Date): boolean {
+  if (!scheduledAt) return false;
+  const hoursUntil = (scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
+  return hoursUntil < 24;
+}
+
+export function CancellationModal({ open, onClose, bookingId, scheduledAt, onCancelled }: CancellationModalProps) {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const lateFee = isWithin24Hours(scheduledAt);
 
   async function handleCancel() {
     if (!reason.trim()) return;
@@ -36,6 +45,14 @@ export function CancellationModal({ open, onClose, bookingId, onCancelled }: Can
   return (
     <Modal open={open} onClose={onClose} title="Cancel Booking">
       <div className="space-y-4">
+        {lateFee && (
+          <div className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/10 p-3">
+            <p className="text-sm font-medium text-warning">Late cancellation fee applies</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              This booking is within 24 hours of the scheduled time. A cancellation fee will be charged.
+            </p>
+          </div>
+        )}
         <p className="text-sm text-text-secondary">
           Are you sure you want to cancel this booking? Please provide a reason.
         </p>
@@ -57,7 +74,7 @@ export function CancellationModal({ open, onClose, bookingId, onCancelled }: Can
             loading={loading}
             disabled={!reason.trim()}
           >
-            Cancel Booking
+            {lateFee ? 'Cancel (Fee Applies)' : 'Cancel Booking'}
           </Button>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Car, Wrench, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getQuoteById, getVehicleById } from '@/lib/firestore-queries';
+import { getQuoteById, getVehicleById, getMechanicById } from '@/lib/firestore-queries';
 import { formatDate, formatRelativeTime } from '@/lib/format';
 import { SERVICE_CATEGORIES } from '@/lib/service-categories';
 import { Card } from '@/components/ui/Card';
@@ -33,6 +33,7 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
   const [error, setError] = useState<string | null>(null);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [acceptingResponse, setAcceptingResponse] = useState<QuoteResponse | null>(null);
+  const [mechanicNames, setMechanicNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -41,8 +42,19 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
         const q = await getQuoteById(quoteId);
         if (!cancelled && q) {
           setQuote(q);
-          const v = await getVehicleById(q.vehicleId);
-          if (!cancelled) setVehicle(v);
+          const [v, ...mechanics] = await Promise.all([
+            getVehicleById(q.vehicleId),
+            ...q.responses.map((r) => getMechanicById(r.mechanicId)),
+          ]);
+          if (!cancelled) {
+            setVehicle(v);
+            const names: Record<string, string> = {};
+            q.responses.forEach((r, i) => {
+              const m = mechanics[i];
+              if (m) names[r.mechanicId] = m.businessName;
+            });
+            setMechanicNames(names);
+          }
         } else if (!cancelled) {
           setQuote(q);
         }
@@ -178,6 +190,7 @@ export function QuoteDetailContent({ quoteId }: QuoteDetailContentProps) {
               <QuoteResponseCard
                 key={index}
                 response={response}
+                mechanicName={mechanicNames[response.mechanicId]}
                 isAccepted={quote.acceptedMechanicId === response.mechanicId}
                 canAccept={canAccept}
                 onAccept={() => setAcceptingResponse(response)}

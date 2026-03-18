@@ -12,8 +12,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getBookingById, getMechanicById, getReviewByBooking } from '@/lib/firestore-queries';
-import { updateBookingPayment } from '@/lib/firestore-helpers';
+import { getBookingById, getMechanicById, getMechanicByUserId, getReviewByBooking } from '@/lib/firestore-queries';
+import { updateBookingPayment, updateBookingStatus } from '@/lib/firestore-helpers';
 import { formatDateTime, formatCurrency } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -52,6 +52,8 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
   const [showCancel, setShowCancel] = useState(false);
   const [review, setReview] = useState<Review | null>(null);
   const [reviewLoaded, setReviewLoaded] = useState(false);
+  const [isMechanic, setIsMechanic] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,14 +62,16 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
         const b = await getBookingById(bookingId);
         if (!cancelled && b) {
           setBooking(b);
-          const [m, existingReview] = await Promise.all([
+          const [m, existingReview, mechanicProfile] = await Promise.all([
             getMechanicById(b.mechanicId),
             b.status === 'completed' ? getReviewByBooking(b.id) : Promise.resolve(null),
+            user ? getMechanicByUserId(user.uid) : Promise.resolve(null),
           ]);
           if (!cancelled) {
             setMechanic(m);
             setReview(existingReview);
             setReviewLoaded(true);
+            setIsMechanic(mechanicProfile?.id === b.mechanicId);
           }
         }
       } catch {
@@ -78,7 +82,7 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
     }
     load();
     return () => { cancelled = true; };
-  }, [bookingId]);
+  }, [bookingId, user]);
 
   const handlePaymentComplete = useCallback(async (stripePaymentId: string) => {
     if (!booking) return;
@@ -93,6 +97,19 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
   const handleCancelled = useCallback(() => {
     setBooking((prev) => prev ? { ...prev, status: 'cancelled' } : null);
   }, []);
+
+  const handleStatusUpdate = useCallback(async (newStatus: 'in_progress' | 'completed') => {
+    if (!booking) return;
+    setStatusUpdating(true);
+    try {
+      await updateBookingStatus(booking.id, newStatus);
+      setBooking((prev) => prev ? { ...prev, status: newStatus } : null);
+    } catch {
+      // Silently fail — user can retry
+    } finally {
+      setStatusUpdating(false);
+    }
+  }, [booking]);
 
   const handleAdditionalWorkUpdated = useCallback((requestId: string, approved: boolean) => {
     setBooking((prev) => {
@@ -236,7 +253,23 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
         />
       )}
 
-      {/* Actions */}
+      {/* Mechanic status actions */}
+      {isMechanic && booking.status === 'confirmed' && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => handleStatusUpdate('in_progress')} loading={statusUpdating}>
+            Start Work
+          </Button>
+        </div>
+      )}
+      {isMechanic && booking.status === 'in_progress' && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => handleStatusUpdate('completed')} loading={statusUpdating}>
+            Mark Completed
+          </Button>
+        </div>
+      )}
+
+      {/* Owner cancel action */}
       {canCancel && (
         <div className="flex justify-end">
           <Button variant="danger" size="sm" onClick={() => setShowCancel(true)}>
@@ -276,6 +309,7 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
         open={showCancel}
         onClose={() => setShowCancel(false)}
         bookingId={booking.id}
+        scheduledAt={booking.scheduledAt?.toDate?.() ?? undefined}
         onCancelled={handleCancelled}
       />
     </div>

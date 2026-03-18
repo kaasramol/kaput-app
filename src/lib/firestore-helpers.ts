@@ -274,16 +274,34 @@ export async function updateBookingPayment(
   });
 }
 
+export interface CancelBookingResult {
+  lateFee: boolean;
+}
+
 export async function cancelBooking(
   bookingId: string,
   reason: string
-): Promise<void> {
+): Promise<CancelBookingResult> {
   const db = getFirebaseDb();
-  await updateDoc(doc(db, 'bookings', bookingId), {
+  const ref = doc(db, 'bookings', bookingId);
+  const snap = await getDoc(ref);
+
+  let lateFee = false;
+  if (snap.exists()) {
+    const booking = snap.data() as Booking;
+    const scheduledAt = booking.scheduledAt?.toDate?.() ?? new Date(booking.scheduledAt as unknown as string);
+    const hoursUntil = (scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
+    lateFee = hoursUntil < 24;
+  }
+
+  await updateDoc(ref, {
     status: 'cancelled',
     cancellationReason: reason,
     cancelledAt: serverTimestamp(),
+    ...(lateFee && { lateCancellationFee: true }),
   });
+
+  return { lateFee };
 }
 
 interface CreateReviewParams {

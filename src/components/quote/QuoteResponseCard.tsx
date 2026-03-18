@@ -9,19 +9,20 @@ import type { QuoteResponse } from '@/types';
 
 interface QuoteResponseCardProps {
   response: QuoteResponse;
+  mechanicName?: string;
   isAccepted: boolean;
   canAccept: boolean;
   onAccept: () => void;
 }
 
-export function QuoteResponseCard({ response, isAccepted, canAccept, onAccept }: QuoteResponseCardProps) {
+export function QuoteResponseCard({ response, mechanicName, isAccepted, canAccept, onAccept }: QuoteResponseCardProps) {
   return (
     <Card className={isAccepted ? 'border-success/50 ring-1 ring-success/30' : undefined}>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-semibold text-text-primary">Mechanic Quote</p>
+            <p className="font-semibold text-text-primary">{mechanicName ?? 'Mechanic Quote'}</p>
             {response.message && (
               <p className="mt-1 text-sm text-text-secondary">{response.message}</p>
             )}
