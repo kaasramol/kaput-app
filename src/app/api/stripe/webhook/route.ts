@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripeServer } from '@/lib/stripe-server';
-import { updateBookingPayment } from '@/lib/firestore-helpers';
-import { updateMechanicSubscription } from '@/lib/firestore-helpers';
+import { updateBookingPayment, updateMechanicSubscription, updateMechanicConnectAccount } from '@/lib/firestore-helpers';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -66,6 +65,22 @@ export async function POST(request: NextRequest) {
           await updateMechanicSubscription(mechanicId, 'inactive', '', undefined);
         } catch (err) {
           console.error('Failed to cancel subscription:', err);
+        }
+      }
+      break;
+    }
+
+    case 'account.updated': {
+      const account = event.data.object as Stripe.Account;
+      const mechanicId = account.metadata?.mechanicId;
+      if (mechanicId) {
+        const chargesEnabled = account.charges_enabled ?? false;
+        const payoutsEnabled = account.payouts_enabled ?? false;
+        const onboardingComplete = chargesEnabled && payoutsEnabled;
+        try {
+          await updateMechanicConnectAccount(mechanicId, account.id, onboardingComplete);
+        } catch (err) {
+          console.error('Failed to update Connect account status:', err);
         }
       }
       break;

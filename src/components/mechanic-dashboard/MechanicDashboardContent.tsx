@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { AlertCircle, Settings, CreditCard } from 'lucide-react';
+import { AlertCircle, Settings, CreditCard, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMechanicDashboardData } from '@/hooks/useMechanicDashboardData';
 import { Card } from '@/components/ui/Card';
@@ -94,6 +94,12 @@ export function MechanicDashboardContent() {
             <Settings className="h-4 w-4" />
             Edit Profile
           </Button>
+          <Link href="/dashboard/mechanic/subscription">
+            <Button variant="secondary" size="sm">
+              <CreditCard className="h-4 w-4" />
+              Billing
+            </Button>
+          </Link>
           <Badge variant={subscriptionVariant}>{subscriptionLabel} Plan</Badge>
         </div>
       </div>
@@ -101,11 +107,38 @@ export function MechanicDashboardContent() {
       {/* Subscription warning */}
       {profile.subscriptionStatus === 'inactive' && (
         <Card className="border-warning/30 bg-warning/5 p-4">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 shrink-0 text-warning" />
-            <p className="text-sm text-text-primary">
-              Your subscription is inactive. Activate a plan to appear in search results and receive quote requests.
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0 text-warning" />
+              <p className="text-sm text-text-primary">
+                Your subscription is inactive. Activate a plan to appear in search results and receive quote requests.
+              </p>
+            </div>
+            <Link href="/dashboard/mechanic/subscription">
+              <Button size="sm">
+                <CreditCard className="h-4 w-4" />
+                Activate
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      {/* Connect payout warning */}
+      {!currentProfile.connectOnboardingComplete && currentProfile.subscriptionStatus !== 'inactive' && (
+        <Card className="border-accent/30 bg-accent/5 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <ExternalLink className="h-5 w-5 shrink-0 text-accent-light" />
+              <p className="text-sm text-text-primary">
+                Set up payouts to receive customer payments directly to your bank account.
+              </p>
+            </div>
+            <Link href="/dashboard/mechanic/subscription">
+              <Button size="sm" variant="secondary">
+                Set Up Payouts
+              </Button>
+            </Link>
           </div>
         </Card>
       )}
