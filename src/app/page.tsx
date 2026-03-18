@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   MapPin,
@@ -16,6 +18,7 @@ import {
   ChevronRight,
   ArrowRight,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
@@ -528,6 +531,14 @@ function FinalCTA() {
 
 /* ────────────────────────── Page ───────────────────────────────── */
 export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading || !user) return;
+    router.replace(user.role === "mechanic" ? "/dashboard/mechanic" : "/dashboard");
+  }, [user, loading, router]);
+
   return (
     <>
       <Navbar />
