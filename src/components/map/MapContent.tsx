@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import type L from 'leaflet';
 import { MapPin, List } from 'lucide-react';
 import { useMap } from '@/hooks/useMap';
 import { getMechanics } from '@/lib/firestore-queries';
@@ -12,7 +13,7 @@ import { MapFilters, type MapFilterState } from '@/components/map/MapFilters';
 import type { MechanicProfile } from '@/types';
 
 export function MapContent() {
-  const { mapRef, map, userLocation, loading: mapLoading, error: mapError } = useMap();
+  const { mapRef, map, leaflet, userLocation, loading: mapLoading, error: mapError } = useMap();
   const [mechanics, setMechanics] = useState<MechanicProfile[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function MapContent() {
     minRating: 0,
     maxDistance: 0,
   });
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markersRef = useRef<L.Marker[]>([]);
 
   // Fetch mechanics
   useEffect(() => {
@@ -89,14 +90,19 @@ export function MapContent() {
   }, [mechanics, filters, userLocation]);
 
   // Place markers on map
-  const placeMarkers = useCallback(async () => {
-    if (!map) return;
+  const placeMarkers = useCallback(() => {
+    if (!map || !leaflet) return;
 
     // Clear old markers
-    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    const infoWindow = new google.maps.InfoWindow();
+    const accentIcon = leaflet.divIcon({
+      className: '',
+      html: `<div style="width:16px;height:16px;background:#3b82f6;border:2px solid #2563eb;border-radius:50%;box-shadow:0 0 6px rgba(59,130,246,0.5);"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
 
     filtered.forEach((mechanic) => {
       if (!mechanic.location) return;
@@ -104,34 +110,22 @@ export function MapContent() {
       const lng = mechanic.location.longitude;
       if (lat === 0 && lng === 0) return;
 
-      const marker = new google.maps.Marker({
-        map,
-        position: { lat, lng },
-        title: mechanic.businessName,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#3b82f6',
-          fillOpacity: 1,
-          strokeColor: '#2563eb',
-          strokeWeight: 2,
-          scale: 8,
-        },
-      });
+      const marker = leaflet.marker([lat, lng], { icon: accentIcon })
+        .addTo(map)
+        .bindPopup(
+          `<div style="color:#0a0a0f;padding:4px;">` +
+          `<strong>${mechanic.businessName}</strong><br/>` +
+          `<span style="font-size:12px;">${mechanic.address}</span>` +
+          `</div>`
+        );
 
-      marker.addListener('click', () => {
+      marker.on('click', () => {
         setSelectedId(mechanic.id);
-        infoWindow.setContent(`
-          <div style="color:#0a0a0f;padding:4px;">
-            <strong>${mechanic.businessName}</strong><br/>
-            <span style="font-size:12px;">${mechanic.address}</span>
-          </div>
-        `);
-        infoWindow.open(map, marker);
       });
 
       markersRef.current.push(marker);
     });
-  }, [map, filtered]);
+  }, [map, leaflet, filtered]);
 
   useEffect(() => {
     placeMarkers();
@@ -202,8 +196,7 @@ export function MapContent() {
                       const lat = mechanic.location.latitude;
                       const lng = mechanic.location.longitude;
                       if (lat !== 0 || lng !== 0) {
-                        map.panTo({ lat, lng });
-                        map.setZoom(15);
+                        map.setView([lat, lng], 15);
                       }
                     }
                   }}

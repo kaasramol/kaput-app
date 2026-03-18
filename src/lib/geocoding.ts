@@ -4,19 +4,23 @@ interface GeocodingResult {
 }
 
 export async function geocodeAddress(address: string): Promise<GeocodingResult | null> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return null;
-
   try {
     const encoded = encodeURIComponent(address);
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encoded}&key=${apiKey}`
+      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'Kaput-App/1.0',
+        },
+      }
     );
     const data = await res.json();
 
-    if (data.status === 'OK' && data.results.length > 0) {
-      const { lat, lng } = data.results[0].geometry.location;
-      return { latitude: lat, longitude: lng };
+    if (Array.isArray(data) && data.length > 0) {
+      return {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+      };
     }
     return null;
   } catch {
