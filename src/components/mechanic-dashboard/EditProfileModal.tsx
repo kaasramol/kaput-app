@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { updateMechanicProfile } from '@/lib/firestore-helpers';
 import { geocodeAddress } from '@/lib/geocoding';
+import { uploadPortfolioPhotos } from '@/lib/storage';
 import type { MechanicProfile, BusinessHours } from '@/types';
 
 const SERVICE_OPTIONS = [
@@ -43,6 +44,8 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
     return h;
   });
   const [enabledDays, setEnabledDays] = useState<Set<string>>(() => new Set(Object.keys(profile.hours)));
+  const [existingPhotos, setExistingPhotos] = useState<string[]>(profile.portfolioImages ?? []);
+  const [newPhotoFiles, setNewPhotoFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +89,12 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
       const addressChanged = address.trim() !== profile.address;
       const geo = addressChanged ? await geocodeAddress(address.trim()) : null;
 
+      // Upload new portfolio photos
+      const newPhotoUrls = newPhotoFiles.length > 0
+        ? await uploadPortfolioPhotos(profile.id, newPhotoFiles)
+        : [];
+      const allPhotos = [...existingPhotos, ...newPhotoUrls];
+
       await updateMechanicProfile(profile.id, {
         description: description.trim(),
         address: address.trim(),
@@ -93,6 +102,7 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
         services,
         certifications: certsArray,
         hours: activeHours,
+        portfolioImages: allPhotos,
         ...(geo && { latitude: geo.latitude, longitude: geo.longitude }),
       });
       onProfileUpdated({
@@ -102,6 +112,7 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
         services,
         certifications: certsArray,
         hours: activeHours,
+        portfolioImages: allPhotos,
       });
       onClose();
     } catch {
@@ -170,6 +181,37 @@ export function EditProfileModal({ open, onClose, profile, onProfileUpdated }: E
           onChange={(e) => setCertifications(e.target.value)}
           placeholder="e.g. ASE Certified, Red Seal"
         />
+
+        {/* Portfolio photos */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-text-secondary">Portfolio Photos</label>
+          {existingPhotos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {existingPhotos.map((url, i) => (
+                <div key={i} className="group relative h-16 w-16 overflow-hidden rounded-[var(--radius-sm)]">
+                  <img src={url} alt={`Portfolio ${i + 1}`} className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setExistingPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => setNewPhotoFiles(Array.from(e.target.files ?? []))}
+            className="w-full text-sm text-text-secondary file:mr-3 file:rounded-full file:border-0 file:bg-accent/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-light hover:file:bg-accent/20"
+          />
+          {newPhotoFiles.length > 0 && (
+            <p className="text-xs text-text-muted">{newPhotoFiles.length} new photo{newPhotoFiles.length !== 1 ? 's' : ''} to upload</p>
+          )}
+        </div>
 
         {/* Hours of operation */}
         <div className="space-y-2">

@@ -46,8 +46,13 @@ export function useMechanicDashboardData(userId: string | undefined): MechanicDa
         }
 
         // Then fetch everything in parallel
+        const mechLoc = mechanicProfile.location;
+        const geoFilter = mechLoc && (mechLoc.latitude !== 0 || mechLoc.longitude !== 0)
+          ? { latitude: mechLoc.latitude, longitude: mechLoc.longitude }
+          : undefined;
+
         const [quotes, jobs, revs] = await Promise.all([
-          getIncomingQuotes(),
+          getIncomingQuotes(geoFilter),
           getBookingsByMechanic(mechanicProfile.id),
           getReviewsByMechanic(mechanicProfile.id),
         ]);

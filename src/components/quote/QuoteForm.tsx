@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -35,6 +35,18 @@ export function QuoteForm() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
+
+  // User location for geo-matching with nearby mechanics
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => { /* silently ignore — location is optional */ }
+      );
+    }
+  }, []);
 
   // AddVehicle modal
   const [showAddVehicle, setShowAddVehicle] = useState(false);
@@ -98,6 +110,7 @@ export function QuoteForm() {
         symptoms: selectedSymptoms,
         description: description.trim(),
         photos: photoUrls,
+        ...(userLocation && { latitude: userLocation.latitude, longitude: userLocation.longitude }),
       });
 
       router.push(`/quote/${quote.id}`);

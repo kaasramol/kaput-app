@@ -162,6 +162,8 @@ interface CreateQuoteParams {
   symptoms: string[];
   description: string;
   photos: string[];
+  latitude?: number;
+  longitude?: number;
 }
 
 export async function createQuoteDoc(params: CreateQuoteParams): Promise<Quote> {
@@ -179,6 +181,9 @@ export async function createQuoteDoc(params: CreateQuoteParams): Promise<Quote> 
     photos: params.photos,
     status: 'open',
     responses: [],
+    ...(params.latitude != null && params.longitude != null && {
+      location: { latitude: params.latitude, longitude: params.longitude },
+    }),
     createdAt: serverTimestamp() as Quote['createdAt'],
     expiresAt: serverTimestamp() as Quote['expiresAt'],
   };

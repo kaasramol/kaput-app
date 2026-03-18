@@ -19,6 +19,11 @@ export interface QuoteResponse {
   respondedAt: Timestamp;
 }
 
+export interface QuoteLocation {
+  latitude: number;
+  longitude: number;
+}
+
 export interface Quote {
   id: string;
   carOwnerId: string;
@@ -30,6 +35,7 @@ export interface Quote {
   status: QuoteStatus;
   responses: QuoteResponse[];
   acceptedMechanicId?: string;
+  location?: QuoteLocation;
   createdAt: Timestamp;
   expiresAt: Timestamp;
 }

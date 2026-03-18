@@ -80,14 +80,52 @@ export async function getMechanicByUserId(userId: string): Promise<MechanicProfi
   return snap.docs[0].data() as MechanicProfile;
 }
 
-export async function getIncomingQuotes(): Promise<Quote[]> {
+/** Distance in km between two lat/lng points using the Haversine formula */
+function haversineDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+interface GeoFilter {
+  latitude: number;
+  longitude: number;
+  radiusKm?: number;
+}
+
+export async function getIncomingQuotes(geoFilter?: GeoFilter): Promise<Quote[]> {
   const q = query(
     collection(getFirebaseDb(), 'quotes'),
     where('status', '==', 'open'),
     orderBy('createdAt', 'desc')
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data() as Quote);
+  const quotes = snap.docs.map((d) => d.data() as Quote);
+
+  // No geo-filter or invalid coordinates — return all
+  if (!geoFilter || (geoFilter.latitude === 0 && geoFilter.longitude === 0)) {
+    return quotes;
+  }
+
+  const radius = geoFilter.radiusKm ?? 50;
+
+  // Filter quotes that have location data by distance; include quotes without location
+  return quotes.filter((quote) => {
+    if (!quote.location) return true;
+    const dist = haversineDistance(
+      geoFilter.latitude, geoFilter.longitude,
+      quote.location.latitude, quote.location.longitude
+    );
+    return dist <= radius;
+  });
 }
 
 export async function getBookingById(bookingId: string): Promise<Booking | null> {

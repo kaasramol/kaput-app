@@ -12,6 +12,7 @@ export type {
   QuoteItem,
   QuoteStatus,
   QuoteItemType,
+  QuoteLocation,
 } from './quote';
 export type {
   Booking,

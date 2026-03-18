@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { createUserDoc, createVehicleDoc, createMechanicProfileDoc } from '@/lib/firestore-helpers';
 import { geocodeAddress } from '@/lib/geocoding';
+import { uploadPortfolioPhotos, uploadCertificationFiles } from '@/lib/storage';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -47,6 +48,8 @@ export default function OnboardingPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [certifications, setCertifications] = useState('');
+  const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
+  const [certFiles, setCertFiles] = useState<File[]>([]);
   const [enabledDays, setEnabledDays] = useState<Set<string>>(
     new Set(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
   );
@@ -128,7 +131,7 @@ export default function OnboardingPage() {
 
         const geo = await geocodeAddress(address);
 
-        await createMechanicProfileDoc({
+        const profile = await createMechanicProfileDoc({
           userId: firebaseUser.uid,
           businessName,
           address,
@@ -140,6 +143,25 @@ export default function OnboardingPage() {
           latitude: geo?.latitude,
           longitude: geo?.longitude,
         });
+
+        // Upload portfolio photos and certification files after profile is created
+        const uploads = await Promise.all([
+          portfolioFiles.length > 0
+            ? uploadPortfolioPhotos(profile.id, portfolioFiles)
+            : Promise.resolve([]),
+          certFiles.length > 0
+            ? uploadCertificationFiles(profile.id, certFiles)
+            : Promise.resolve([]),
+        ]);
+
+        if (uploads[0].length > 0 || uploads[1].length > 0) {
+          const { updateMechanicProfile } = await import('@/lib/firestore-helpers');
+          await updateMechanicProfile(profile.id, {
+            ...(uploads[0].length > 0 && { portfolioImages: uploads[0] }),
+            ...(uploads[1].length > 0 && { certifications: [...certsArray, ...uploads[1]] }),
+          });
+        }
+
         router.replace('/dashboard/mechanic');
       }
     } catch (err) {
@@ -264,6 +286,40 @@ export default function OnboardingPage() {
               value={certifications}
               onChange={(e) => setCertifications(e.target.value)}
             />
+
+            {/* Certification files */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-text-secondary">
+                Certification Documents (optional)
+              </label>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setCertFiles(Array.from(e.target.files ?? []))}
+                className="w-full text-sm text-text-secondary file:mr-3 file:rounded-full file:border-0 file:bg-accent/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-light hover:file:bg-accent/20"
+              />
+              {certFiles.length > 0 && (
+                <p className="text-xs text-text-muted">{certFiles.length} file{certFiles.length !== 1 ? 's' : ''} selected</p>
+              )}
+            </div>
+
+            {/* Portfolio photos */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-text-secondary">
+                Portfolio Photos (optional)
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => setPortfolioFiles(Array.from(e.target.files ?? []))}
+                className="w-full text-sm text-text-secondary file:mr-3 file:rounded-full file:border-0 file:bg-accent/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-light hover:file:bg-accent/20"
+              />
+              {portfolioFiles.length > 0 && (
+                <p className="text-xs text-text-muted">{portfolioFiles.length} photo{portfolioFiles.length !== 1 ? 's' : ''} selected</p>
+              )}
+            </div>
 
             {/* Hours */}
             <div className="space-y-2">
