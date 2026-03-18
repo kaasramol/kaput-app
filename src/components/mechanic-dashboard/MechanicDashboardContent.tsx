@@ -15,6 +15,8 @@ import { ActiveJobsSection } from '@/components/mechanic-dashboard/ActiveJobsSec
 import { MechanicReviewsSection } from '@/components/mechanic-dashboard/MechanicReviewsSection';
 import { QuoteResponseModal } from '@/components/mechanic-dashboard/QuoteResponseModal';
 import { EditProfileModal } from '@/components/mechanic-dashboard/EditProfileModal';
+import { AnalyticsSection } from '@/components/mechanic-dashboard/AnalyticsSection';
+import { CalendarSection } from '@/components/mechanic-dashboard/CalendarSection';
 import type { Quote, MechanicProfile } from '@/types';
 
 export function MechanicDashboardContent() {
@@ -154,6 +156,12 @@ export function MechanicDashboardContent() {
           onRespond={setRespondingQuote}
         />
         <ActiveJobsSection bookings={bookings} />
+      </div>
+
+      {/* Calendar + Analytics */}
+      <div className="grid gap-8 lg:grid-cols-2">
+        <CalendarSection bookings={bookings} />
+        <AnalyticsSection bookings={bookings} reviews={reviews} />
       </div>
 
       {/* Reviews */}

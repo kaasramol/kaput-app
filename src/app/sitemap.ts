@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
+import { getMechanics } from "@/lib/firestore-queries";
 
 const BASE_URL = "https://kaput.ca";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
       lastModified: new Date(),
@@ -41,4 +42,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
   ];
+
+  // Dynamically add active mechanic profile pages
+  let mechanicPages: MetadataRoute.Sitemap = [];
+  try {
+    const mechanics = await getMechanics();
+    mechanicPages = mechanics.map((m) => ({
+      url: `${BASE_URL}/mechanic/${m.id}`,
+      lastModified: m.updatedAt?.toDate?.() ?? new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+  } catch {
+    // Firestore unavailable at build time — skip dynamic pages
+  }
+
+  return [...staticPages, ...mechanicPages];
 }

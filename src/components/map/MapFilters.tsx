@@ -32,6 +32,7 @@ const DISTANCE_OPTIONS = [
   { value: 5, label: '5 km' },
   { value: 10, label: '10 km' },
   { value: 25, label: '25 km' },
+  { value: 50, label: '50 km' },
 ];
 
 export function MapFilters({ filters, onFilterChange, showFilters, onToggleFilters }: MapFiltersProps) {

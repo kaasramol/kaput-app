@@ -170,6 +170,21 @@ export function MapContent() {
               <p className="mt-1 text-sm text-text-secondary">
                 Try adjusting your filters or search.
               </p>
+              {filters.maxDistance > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => {
+                    const nextRadius = filters.maxDistance < 25 ? 25 : filters.maxDistance < 50 ? 50 : 0;
+                    setFilters({ ...filters, maxDistance: nextRadius });
+                  }}
+                >
+                  {filters.maxDistance < 50
+                    ? `Expand to ${filters.maxDistance < 25 ? '25' : '50'} km`
+                    : 'Remove distance limit'}
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
