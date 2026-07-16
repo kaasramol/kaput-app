@@ -1,0 +1,89 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMechanicOwner(mechanicId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/mechanics/$(mechanicId)).data.userId == request.auth.uid;
+    }
+
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    match /vehicles/{vehicleId} {
+      // Single-doc reads: mechanics view a quote's vehicle. Lists are owner-only.
+      allow get: if signedIn();
+      allow list: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /mechanics/{mechanicId} {
+      // Public read: profile pages and sitemap are unauthenticated.
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      // Owner edits their profile; car owners may only touch rating aggregates
+      // (updated client-side when a review is submitted).
+      allow update: if (signedIn() && resource.data.userId == request.auth.uid)
+        || (signedIn() && onlyChanges(['rating', 'reviewCount']));
+      allow delete: if false;
+    }
+
+    match /quotes/{quoteId} {
+      // Mechanics browse all open quotes; owners read their own.
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.carOwnerId == request.auth.uid;
+      // Owner manages their quote; mechanics may only append responses / flip status.
+      allow update: if (signedIn() && resource.data.carOwnerId == request.auth.uid)
+        || (signedIn() && onlyChanges(['responses', 'status']));
+      allow delete: if signedIn() && resource.data.carOwnerId == request.auth.uid;
+    }
+
+    match /bookings/{bookingId} {
+      allow read, update: if signedIn()
+        && (resource.data.carOwnerId == request.auth.uid
+            || isMechanicOwner(resource.data.mechanicId));
+      allow create: if signedIn() && request.resource.data.carOwnerId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      // Public read: shown on public mechanic profiles.
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.carOwnerId == request.auth.uid;
+      // Mechanic may reply to reviews about them; nothing else changes.
+      allow update: if isMechanicOwner(resource.data.mechanicId)
+        && onlyChanges(['mechanicReply']);
+      allow delete: if false;
+    }
+
+    match /messages/{messageId} {
+      function bookingData(id) {
+        return get(/databases/$(database)/documents/bookings/$(id)).data;
+      }
+      function isParticipant(booking) {
+        return booking.carOwnerId == request.auth.uid
+          || isMechanicOwner(booking.mechanicId);
+      }
+      allow read: if signedIn() && isParticipant(bookingData(resource.data.bookingId));
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && isParticipant(bookingData(request.resource.data.bookingId));
+      allow update, delete: if false;
+    }
+  }
+}

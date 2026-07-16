@@ -40,9 +40,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
       if (imageFile) {
         const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-        const { getFirebaseStorage } = await import('@/lib/firebase');
+        const { getFirebaseStorage, getFirebaseAuth } = await import('@/lib/firebase');
         const storage = getFirebaseStorage();
-        const path = `chat/${Date.now()}_${imageFile.name}`;
+        const uid = getFirebaseAuth().currentUser?.uid;
+        if (!uid) throw new Error('Must be signed in to upload images');
+        const path = `chat/${uid}/${Date.now()}_${imageFile.name}`;
         const storageRef = ref(storage, path);
         await uploadBytes(storageRef, imageFile);
         uploadedUrl = await getDownloadURL(storageRef);

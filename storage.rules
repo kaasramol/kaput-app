@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function underMb(mb) {
+      return request.resource.size < mb * 1024 * 1024;
+    }
+
+    // Quote photos: owner uploads into their own folder; any signed-in
+    // user (mechanics reviewing quotes) can view.
+    match /quotes/{userId}/{fileName} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId
+        && isImage() && underMb(10);
+    }
+
+    function ownsMechanic(mechanicId) {
+      return firestore.get(/databases/(default)/documents/mechanics/$(mechanicId)).data.userId == request.auth.uid;
+    }
+
+    // Mechanic portfolio images are shown on public profile pages.
+    match /mechanics/{mechanicId}/portfolio/{fileName} {
+      allow read: if true;
+      allow write: if signedIn() && ownsMechanic(mechanicId)
+        && isImage() && underMb(10);
+    }
+
+    // Certifications: PDFs or images, visible to signed-in users.
+    match /mechanics/{mechanicId}/certifications/{fileName} {
+      allow read: if signedIn();
+      allow write: if signedIn() && ownsMechanic(mechanicId) && underMb(10);
+    }
+
+    // Chat images: sender uploads into their own folder; booking
+    // participants (any signed-in user) can view.
+    match /chat/{userId}/{fileName} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId
+        && isImage() && underMb(10);
+    }
+  }
+}
