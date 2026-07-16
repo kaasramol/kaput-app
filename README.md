@@ -43,7 +43,7 @@ firebase deploy --only firestore:rules,firestore:indexes,storage
 
 ```
 src/
-├── app/            # App Router pages ((auth), (main), api/stripe, api/twilio)
+├── app/            # App Router pages ((auth), (main), api/stripe, api/call)
 ├── components/     # ui primitives, map, quote, booking, mechanic, dashboard, chat
 ├── lib/            # firebase init, firestore helpers, storage uploads, stripe
 ├── hooks/          # useChat, useMechanics, ...
