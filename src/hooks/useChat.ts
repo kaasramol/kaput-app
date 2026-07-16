@@ -21,15 +21,12 @@ interface UseChatResult {
 
 export function useChat(bookingId: string, senderId: string | undefined): UseChatResult {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(bookingId));
   const [error, setError] = useState<string | null>(null);
 
   // Real-time listener
   useEffect(() => {
-    if (!bookingId) {
-      setLoading(false);
-      return;
-    }
+    if (!bookingId) return;
 
     const q = query(
       collection(getFirebaseDb(), 'messages'),

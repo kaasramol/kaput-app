@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Shield,
   Star,
-  Clock,
   CreditCard,
   Search,
   FileText,

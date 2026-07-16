@@ -1,6 +1,6 @@
 'use client';
 
-import { Car, Wrench, MessageSquare, Image } from 'lucide-react';
+import { Car, Wrench, MessageSquare, Image as ImageIcon } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Vehicle } from '@/types';
@@ -64,7 +64,7 @@ export function ReviewStep({ vehicle, serviceCategory, symptoms, description, ph
         {photoCount > 0 && (
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <Image className="h-5 w-5 text-accent-light" />
+              <ImageIcon className="h-5 w-5 text-accent-light" />
               <div>
                 <p className="text-xs text-text-muted">Photos</p>
                 <p className="font-medium text-text-primary">

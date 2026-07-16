@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kaput
 
-## Getting Started
+A map-based marketplace connecting car owners with trusted mechanics in Vancouver. Owners describe the problem, attach photos, and collect itemized quotes; mechanics browse open requests, respond with parts/labor breakdowns, and manage jobs through a dedicated dashboard.
 
-First, run the development server:
+## Features
+
+- **Quote flow** — 4-step guided request (vehicle → service → details → review) with photo uploads and side-by-side quote comparison
+- **Map search** — Leaflet + OpenStreetMap mechanic discovery with service-type and rating filters
+- **Bookings & chat** — real-time messaging (text + images) between owner and mechanic per booking
+- **Masked calls** — Twilio proxy numbers so parties never see each other's real phone number
+- **Mechanic subscriptions** — Stripe-powered plans with webhook-driven status updates
+- **Push notifications** — Firebase Cloud Messaging with foreground toasts
+- **Reviews** — ratings on mechanic profiles with mechanic replies
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · Firebase (Auth, Firestore, Storage, FCM) · Stripe · Twilio · Zustand · Framer Motion
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in Firebase, Stripe, and Twilio keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Deploy Firestore/Storage security rules and indexes:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+firebase deploy --only firestore:rules,firestore:indexes,storage
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | Type check |
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/            # App Router pages ((auth), (main), api/stripe, api/twilio)
+├── components/     # ui primitives, map, quote, booking, mechanic, dashboard, chat
+├── lib/            # firebase init, firestore helpers, storage uploads, stripe
+├── hooks/          # useChat, useMechanics, ...
+├── context/        # Auth, Notification providers
+└── types/          # user, vehicle, mechanic, quote, booking, review, message
+```

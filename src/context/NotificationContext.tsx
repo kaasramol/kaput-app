@@ -73,10 +73,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   // Auto-request permission after login
   useEffect(() => {
-    if (user && permissionStatus === 'default') {
-      requestPermission();
-    }
-  }, [user, permissionStatus, requestPermission]);
+    if (!user || permissionStatus !== 'default') return;
+    let cancelled = false;
+    requestNotificationPermission(user.uid).then((token) => {
+      if (!cancelled) setPermissionStatus(token ? 'granted' : 'denied');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, permissionStatus]);
 
   // Listen for foreground messages
   useEffect(() => {
