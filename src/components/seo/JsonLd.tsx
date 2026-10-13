@@ -35,7 +35,6 @@ export const organizationSchema = {
   name: "Kaput",
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
-  email: "hello@kaput.ca",
   areaServed: {
     "@type": "City",
     name: "Vancouver",
@@ -51,19 +50,11 @@ export const localBusinessSchema = {
   description:
     "Marketplace connecting car owners with verified mechanics in Vancouver. Compare transparent quotes, book online, and pay securely.",
   url: SITE_URL,
-  email: "hello@kaput.ca",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Vancouver",
     addressRegion: "BC",
     addressCountry: "CA",
-  },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    reviewCount: "200",
-    bestRating: "5",
-    worstRating: "1",
   },
   priceRange: "$$",
 };

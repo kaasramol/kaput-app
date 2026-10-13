@@ -319,7 +319,7 @@ export default function About() {
               className="mt-8"
             >
               <Link
-                href="mailto:hello@kaput.ca"
+                href="mailto:kasra_molaei@sfu.ca"
                 className="group inline-flex h-12 items-center gap-2 rounded-full bg-accent px-8 text-base font-semibold text-white transition-all hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/25"
               >
                 Get In Touch

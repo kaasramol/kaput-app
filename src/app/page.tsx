@@ -8,7 +8,6 @@ import {
   MapPin,
   MessageSquare,
   Shield,
-  Star,
   CreditCard,
   Search,
   FileText,
@@ -105,30 +104,9 @@ function Hero() {
             transition={{ duration: 0.5 }}
             className="mt-16 flex flex-col items-center gap-6 sm:flex-row sm:justify-center"
           >
-            {/* Avatars */}
-            <div className="flex -space-x-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-background bg-bg-elevated text-xs font-bold text-text-muted"
-                >
-                  {String.fromCharCode(64 + i)}
-                </div>
-              ))}
-            </div>
-            <div className="text-center sm:text-left">
-              <div className="flex items-center justify-center gap-1 sm:justify-start">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-warning text-warning"
-                  />
-                ))}
-              </div>
-              <p className="mt-1 text-sm text-text-muted">
-                Trusted by car owners across Vancouver
-              </p>
-            </div>
+            <p className="text-sm text-text-muted">
+              Now in early access across Vancouver, BC
+            </p>
           </motion.div>
         </motion.div>
       </div>
@@ -339,109 +317,12 @@ function HowItWorks() {
   );
 }
 
-/* ──────────────────────── Testimonials ─────────────────────────── */
-const testimonials = [
-  {
-    name: "Sarah M.",
-    role: "Car Owner",
-    quote:
-      "I saved over $400 by comparing quotes from three different shops. The whole process took less than an hour.",
-    rating: 5,
-  },
-  {
-    name: "Dave's Auto Repair",
-    role: "Mechanic Shop",
-    quote:
-      "Kaput brought us 15 new customers in the first month. The booking system saves us hours of phone calls every week.",
-    rating: 5,
-  },
-  {
-    name: "Michael T.",
-    role: "Car Owner",
-    quote:
-      "Being able to chat directly with the mechanic and approve extra work from my phone gave me total peace of mind.",
-    rating: 5,
-  },
-];
-
-function Testimonials() {
-  return (
-    <section className="border-t border-border bg-bg-secondary py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={stagger}
-          className="text-center"
-        >
-          <motion.span
-            variants={fadeUp}
-            transition={{ duration: 0.5 }}
-            className="text-sm font-semibold uppercase tracking-wider text-accent"
-          >
-            Testimonials
-          </motion.span>
-          <motion.h2
-            variants={fadeUp}
-            transition={{ duration: 0.5 }}
-            className="mt-3 text-3xl font-bold text-text-primary sm:text-4xl"
-          >
-            Loved by car owners
-            <br className="hidden sm:block" /> and mechanics alike
-          </motion.h2>
-        </motion.div>
-
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-          variants={stagger}
-          className="mt-16 grid gap-6 md:grid-cols-3"
-        >
-          {testimonials.map((t) => (
-            <motion.div
-              key={t.name}
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-              className="rounded-2xl border border-border bg-bg-card p-8"
-            >
-              <div className="flex gap-1">
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 fill-warning text-warning"
-                  />
-                ))}
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-elevated text-sm font-bold text-text-muted">
-                  {t.name[0]}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text-primary">
-                    {t.name}
-                  </p>
-                  <p className="text-xs text-text-muted">{t.role}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
 /* ──────────────────────── Stats Section ────────────────────────── */
 const stats = [
-  { value: "200+", label: "Verified Mechanics" },
-  { value: "10K+", label: "Quotes Compared" },
-  { value: "4.8", label: "Average Rating" },
-  { value: "$350", label: "Avg. Savings Per Repair" },
+  { value: "4 steps", label: "To request a quote" },
+  { value: "Itemized", label: "Parts & labour in every quote" },
+  { value: "Real-time", label: "Chat with your mechanic" },
+  { value: "Vancouver", label: "Launch city" },
 ];
 
 function Stats() {
@@ -500,8 +381,8 @@ function FinalCTA() {
             transition={{ duration: 0.5 }}
             className="relative mx-auto mt-4 max-w-xl text-lg text-blue-100"
           >
-            Join thousands of Vancouver car owners who save time and money with
-            Kaput. Sign up for free and get your first quote in minutes.
+            Describe the problem, compare itemized quotes from local shops, and
+            book in minutes. Sign up for free to get your first quote.
           </motion.p>
           <motion.div
             variants={fadeUp}
@@ -545,7 +426,6 @@ export default function Home() {
       <Features />
       <Stats />
       <HowItWorks />
-      <Testimonials />
       <FinalCTA />
       <Footer />
     </>

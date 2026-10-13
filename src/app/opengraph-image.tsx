@@ -128,8 +128,8 @@ export default function OgImage() {
           <span style={{ fontWeight: 700, color: "#f1f5f9", fontSize: 22 }}>
             {SITE_HOST}
           </span>
-          <span>200+ Verified Mechanics</span>
-          <span>4.8 Average Rating</span>
+          <span>Itemized Quotes</span>
+          <span>Real-time Chat</span>
           <span>$350 Avg. Savings</span>
         </div>
       </div>

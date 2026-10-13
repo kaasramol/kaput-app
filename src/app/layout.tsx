@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     siteName: "Kaput",
     title: "Kaput — Find Trusted Mechanics in Vancouver",
     description:
-      "Compare transparent quotes from verified mechanics, book online, and pay securely. Trusted by car owners across Vancouver.",
+      "Compare transparent quotes from verified mechanics, book online, and pay securely. Now in early access across Vancouver.",
   },
   twitter: {
     card: "summary_large_image",
