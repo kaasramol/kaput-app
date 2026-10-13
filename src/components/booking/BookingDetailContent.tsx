@@ -287,6 +287,7 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
               {isOwner ? 'Message Mechanic' : 'Message Customer'}
             </Button>
           </Link>
+          {process.env.NEXT_PUBLIC_ENABLE_CALLS === 'true' && (
           <MaskedCallButton
             bookingId={booking.id}
             callerId={user?.uid ?? ''}
@@ -295,6 +296,7 @@ export function BookingDetailContent({ bookingId }: BookingDetailContentProps) {
             mechanicId={booking.mechanicId}
             carOwnerId={booking.carOwnerId}
           />
+          )}
         </div>
       )}
 

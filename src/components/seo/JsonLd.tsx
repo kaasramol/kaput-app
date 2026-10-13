@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 interface JsonLdProps {
   data: Record<string, unknown>;
 }
@@ -15,14 +16,14 @@ export const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Kaput",
-  url: "https://kaput.ca",
+  url: SITE_URL,
   description:
     "Find trusted mechanics in Vancouver. Compare quotes, book appointments, and pay securely.",
   potentialAction: {
     "@type": "SearchAction",
     target: {
       "@type": "EntryPoint",
-      urlTemplate: "https://kaput.ca/map?q={search_term_string}",
+      urlTemplate: `${SITE_URL}/map?q={search_term_string}`,
     },
     "query-input": "required name=search_term_string",
   },
@@ -32,8 +33,8 @@ export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Kaput",
-  url: "https://kaput.ca",
-  logo: "https://kaput.ca/logo.png",
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
   email: "hello@kaput.ca",
   areaServed: {
     "@type": "City",
@@ -49,7 +50,7 @@ export const localBusinessSchema = {
   name: "Kaput",
   description:
     "Marketplace connecting car owners with verified mechanics in Vancouver. Compare transparent quotes, book online, and pay securely.",
-  url: "https://kaput.ca",
+  url: SITE_URL,
   email: "hello@kaput.ca",
   address: {
     "@type": "PostalAddress",

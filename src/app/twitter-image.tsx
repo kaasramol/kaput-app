@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_HOST } from "@/lib/site";
 
 export const runtime = "edge";
 
@@ -88,7 +89,7 @@ export default function TwitterImage() {
             fontSize: 22,
           }}
         >
-          kaput.ca
+          {SITE_HOST}
         </div>
       </div>
     ),

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { SITE_HOST } from "@/lib/site";
 
 export const runtime = "edge";
 
@@ -125,7 +126,7 @@ export default function OgImage() {
           }}
         >
           <span style={{ fontWeight: 700, color: "#f1f5f9", fontSize: 22 }}>
-            kaput.ca
+            {SITE_HOST}
           </span>
           <span>200+ Verified Mechanics</span>
           <span>4.8 Average Rating</span>

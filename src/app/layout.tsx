@@ -9,6 +9,7 @@ import {
   localBusinessSchema,
 } from "@/components/seo/JsonLd";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kaput.ca"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Kaput — Find Trusted Mechanics in Vancouver | Compare Quotes & Book Online",
     template: "%s | Kaput",
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_CA",
-    url: "https://kaput.ca",
+    url: SITE_URL,
     siteName: "Kaput",
     title: "Kaput — Find Trusted Mechanics in Vancouver",
     description:
@@ -57,7 +58,7 @@ export const metadata: Metadata = {
       "Compare transparent quotes from verified mechanics, book online, and pay securely.",
   },
   alternates: {
-    canonical: "https://kaput.ca",
+    canonical: SITE_URL,
   },
   robots: {
     index: true,

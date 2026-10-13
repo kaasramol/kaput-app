@@ -71,6 +71,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /notifications/{notificationId} {
+      // Written client-side by the acting user for the recipient.
+      allow create: if signedIn() && request.resource.data.read == false;
+      allow read, update: if signedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
     match /messages/{messageId} {
       function bookingData(id) {
         return get(/databases/$(database)/documents/bookings/$(id)).data;

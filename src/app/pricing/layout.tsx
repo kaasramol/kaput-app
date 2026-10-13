@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Pricing — Kaput Mechanic Plans | No Commission, Flat Monthly Fee",
@@ -15,11 +16,11 @@ export const metadata: Metadata = {
     title: "Kaput Pricing — Simple Plans for Auto Shops",
     description:
       "No commission, no hidden fees. Flat monthly subscription starting at $49/month with a 14-day free trial.",
-    url: "https://kaput.ca/pricing",
+    url: `${SITE_URL}/pricing`,
     type: "website",
   },
   alternates: {
-    canonical: "https://kaput.ca/pricing",
+    canonical: `${SITE_URL}/pricing`,
   },
 };
 

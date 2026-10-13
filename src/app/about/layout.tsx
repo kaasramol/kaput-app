@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About Kaput — Making Car Repair Fair & Transparent in Vancouver",
@@ -15,11 +16,11 @@ export const metadata: Metadata = {
     title: "About Kaput — Making Car Repair Fair & Transparent",
     description:
       "Learn how Kaput is connecting Vancouver car owners with trusted, verified mechanics.",
-    url: "https://kaput.ca/about",
+    url: `${SITE_URL}/about`,
     type: "website",
   },
   alternates: {
-    canonical: "https://kaput.ca/about",
+    canonical: `${SITE_URL}/about`,
   },
 };
 
