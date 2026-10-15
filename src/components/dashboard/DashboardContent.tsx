@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -21,11 +22,19 @@ export function DashboardContent() {
 
   const allVehicles = [...localVehicles, ...vehicles];
 
+  const router = useRouter();
+  const isMechanic = user?.role === 'mechanic';
+
+  // Mechanics have their own dashboard; send them there.
+  useEffect(() => {
+    if (isMechanic) router.replace('/dashboard/mechanic');
+  }, [isMechanic, router]);
+
   const handleVehicleAdded = useCallback((vehicle: Vehicle) => {
     setLocalVehicles((prev) => [vehicle, ...prev]);
   }, []);
 
-  if (loading) {
+  if (loading || isMechanic) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Spinner size="lg" />

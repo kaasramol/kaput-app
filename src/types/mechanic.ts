@@ -29,6 +29,8 @@ export interface MechanicProfile {
   stripeSubscriptionId?: string;
   stripeConnectAccountId?: string;
   connectOnboardingComplete?: boolean;
+  /** Seeded sample listing used for demos; never a real business. */
+  isDemo?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

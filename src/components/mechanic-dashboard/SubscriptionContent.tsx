@@ -10,6 +10,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
+import { updateMechanicSubscription } from '@/lib/firestore-helpers';
+
+const STRIPE_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 const plans = [
   {
@@ -68,6 +71,7 @@ export function SubscriptionContent() {
   const { user } = useAuth();
   const { profile, loading } = useMechanicDashboardData(user?.uid);
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -91,6 +95,19 @@ export function SubscriptionContent() {
   async function handleSubscribe(planId: string) {
     if (!user?.email || !profile) return;
     setSubscribing(planId);
+    setSubscribeError(null);
+
+    if (!STRIPE_CONFIGURED) {
+      // Demo mode: record the plan as a trial without Stripe Checkout.
+      try {
+        await updateMechanicSubscription(profile.id, 'trial', planId);
+        window.location.reload();
+      } catch {
+        setSubscribeError('Could not update your plan. Please try again.');
+        setSubscribing(null);
+      }
+      return;
+    }
 
     try {
       const res = await fetch('/api/stripe/subscription', {
@@ -107,9 +124,11 @@ export function SubscriptionContent() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setSubscribeError(data.error ?? 'Could not start checkout. Please try again.');
       }
     } catch {
-      // Failed to create checkout session
+      setSubscribeError('Could not start checkout. Please try again.');
     } finally {
       setSubscribing(null);
     }
@@ -135,6 +154,12 @@ export function SubscriptionContent() {
             Current Plan: {profile.subscriptionPlan || 'Trial'}
           </Badge>
         )}
+        {!STRIPE_CONFIGURED && (
+          <p className="mx-auto mt-3 max-w-xl text-xs text-text-muted">
+            Demo mode: choosing a plan starts a trial instantly. With Stripe connected, this opens Stripe Checkout.
+          </p>
+        )}
+        {subscribeError && <p className="mt-3 text-sm text-error">{subscribeError}</p>}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -221,7 +246,9 @@ export function SubscriptionContent() {
                 : 'Connect your bank account to receive payouts from customer payments.'}
             </p>
           </div>
-          {profile.connectOnboardingComplete ? (
+          {!STRIPE_CONFIGURED ? (
+            <Badge variant="default">Available once Stripe is connected</Badge>
+          ) : profile.connectOnboardingComplete ? (
             <ConnectDashboardButton accountId={profile.stripeConnectAccountId!} />
           ) : (
             <ConnectOnboardButton mechanicId={profile.id} email={user?.email ?? ''} businessName={profile.businessName} />

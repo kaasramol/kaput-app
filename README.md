@@ -2,6 +2,8 @@
 
 A map-based marketplace connecting car owners with trusted mechanics in Vancouver. Owners describe the problem, attach photos, and collect itemized quotes; mechanics browse open requests, respond with parts/labor breakdowns, and manage jobs through a dedicated dashboard.
 
+**Live demo:** https://kaput-azure.vercel.app. On the login page, pick **Demo as car owner** or **Demo as mechanic** to explore without signing up.
+
 ## Features
 
 - **Quote flow** — 4-step guided request (vehicle → service → details → review) with photo uploads and side-by-side quote comparison
@@ -30,6 +32,22 @@ Deploy Firestore/Storage security rules and indexes:
 firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
+## Demo mode
+
+The app runs end to end with only Firebase configured:
+
+- **Payments.** Without `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, checkout shows a clearly labelled "Simulate payment" step and plan selection starts a trial directly. Add Stripe test keys and the real Stripe Elements / Checkout flow takes over automatically.
+- **Uploads.** Photo uploads are best-effort. If Firebase Storage is not enabled, quotes and onboarding still submit without the photos.
+- **Calls and push.** Masked calls stay hidden until `NEXT_PUBLIC_ENABLE_CALLS=true`. Push notifications need `NEXT_PUBLIC_FIREBASE_VAPID_KEY`; in-app notifications work without it.
+
+Seed or reset the demo data (sample shops, reviews, a car owner with quotes, bookings and a chat thread):
+
+```bash
+node --env-file=.env.local scripts/seed-demo.mjs
+```
+
+All seeded shops carry `isDemo: true`, show a "Demo listing" badge, and are excluded from the sitemap. Re-running the script resets the demo quotes and bookings to their starting state.
+
 ## Scripts
 
 | Command | Purpose |
@@ -38,6 +56,7 @@ firebase deploy --only firestore:rules,firestore:indexes,storage
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
 | `npx tsc --noEmit` | Type check |
+| `node --env-file=.env.local scripts/seed-demo.mjs` | Seed / reset demo data |
 
 ## Project structure
 

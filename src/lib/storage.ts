@@ -1,47 +1,80 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseStorage } from '@/lib/firebase';
 
-export async function uploadQuotePhotos(userId: string, files: File[]): Promise<string[]> {
-  const storage = getFirebaseStorage();
-  const timestamp = Date.now();
+const UPLOAD_TIMEOUT_MS = 20_000;
 
-  const uploads = files.map(async (file, index) => {
-    const ext = file.name.split('.').pop() ?? 'jpg';
-    const path = `quotes/${userId}/${timestamp}_${index}.${ext}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Upload timed out')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
   });
-
-  return Promise.all(uploads);
 }
 
-export async function uploadPortfolioPhotos(mechanicId: string, files: File[]): Promise<string[]> {
+/**
+ * Upload files and return the download URLs of those that succeeded.
+ * Uploads are best-effort: a failed or slow upload is skipped so it never
+ * blocks the surrounding action (submitting a quote, finishing onboarding).
+ */
+async function uploadFiles(
+  files: File[],
+  pathFor: (file: File, index: number) => string
+): Promise<string[]> {
   const storage = getFirebaseStorage();
-  const timestamp = Date.now();
 
-  const uploads = files.map(async (file, index) => {
-    const ext = file.name.split('.').pop() ?? 'jpg';
-    const path = `mechanics/${mechanicId}/portfolio/${timestamp}_${index}.${ext}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
-  });
+  const results = await Promise.allSettled(
+    files.map(async (file, index) => {
+      const storageRef = ref(storage, pathFor(file, index));
+      await withTimeout(uploadBytes(storageRef, file), UPLOAD_TIMEOUT_MS);
+      return getDownloadURL(storageRef);
+    })
+  );
 
-  return Promise.all(uploads);
+  const urls: string[] = [];
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      urls.push(result.value);
+    } else {
+      console.warn('File upload skipped:', result.reason);
+    }
+  }
+  return urls;
 }
 
-export async function uploadCertificationFiles(mechanicId: string, files: File[]): Promise<string[]> {
-  const storage = getFirebaseStorage();
+function extension(file: File, fallback: string): string {
+  return file.name.includes('.') ? (file.name.split('.').pop() ?? fallback) : fallback;
+}
+
+export function uploadQuotePhotos(userId: string, files: File[]): Promise<string[]> {
   const timestamp = Date.now();
+  return uploadFiles(files, (file, i) => `quotes/${userId}/${timestamp}_${i}.${extension(file, 'jpg')}`);
+}
 
-  const uploads = files.map(async (file, index) => {
-    const ext = file.name.split('.').pop() ?? 'pdf';
-    const path = `mechanics/${mechanicId}/certifications/${timestamp}_${index}.${ext}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
-  });
+export function uploadPortfolioPhotos(mechanicId: string, files: File[]): Promise<string[]> {
+  const timestamp = Date.now();
+  return uploadFiles(
+    files,
+    (file, i) => `mechanics/${mechanicId}/portfolio/${timestamp}_${i}.${extension(file, 'jpg')}`
+  );
+}
 
-  return Promise.all(uploads);
+export function uploadCertificationFiles(mechanicId: string, files: File[]): Promise<string[]> {
+  const timestamp = Date.now();
+  return uploadFiles(
+    files,
+    (file, i) => `mechanics/${mechanicId}/certifications/${timestamp}_${i}.${extension(file, 'pdf')}`
+  );
+}
+
+export async function uploadChatImage(userId: string, file: File): Promise<string | null> {
+  const [url] = await uploadFiles([file], () => `chat/${userId}/${Date.now()}_${file.name}`);
+  return url ?? null;
 }

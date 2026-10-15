@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Star, MapPin, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { cn } from '@/lib/utils';
+import { cn, getDayHours } from '@/lib/utils';
 import type { MechanicProfile } from '@/types';
 
 interface MechanicCardProps {
@@ -30,6 +30,9 @@ export function MechanicCard({ mechanic, selected, onSelect }: MechanicCardProps
             >
               {mechanic.businessName}
             </Link>
+            {mechanic.isDemo && (
+              <Badge variant="default" className="ml-2 align-middle text-[10px]">Demo listing</Badge>
+            )}
             <div className="mt-1 flex items-center gap-1.5 text-sm text-text-secondary">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{mechanic.address}</span>
@@ -76,7 +79,7 @@ function isOpenNow(hours: MechanicProfile['hours']): boolean {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const now = new Date();
   const day = days[now.getDay()];
-  const dayHours = hours[day];
+  const dayHours = getDayHours(hours, day);
   if (!dayHours) return false;
 
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;

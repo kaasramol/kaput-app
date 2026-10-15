@@ -1,5 +1,12 @@
 import { doc, collection, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
+import { getMechanicById } from '@/lib/firestore-queries';
+
+/** Bookings and reviews store the mechanic *profile* id; notifications go to the shop owner's user id. */
+async function mechanicUserId(mechanicId: string): Promise<string> {
+  const profile = await getMechanicById(mechanicId);
+  return profile?.userId ?? mechanicId;
+}
 
 interface NotificationData {
   userId: string;
@@ -44,7 +51,7 @@ export async function sendBookingConfirmedNotification(
   customerName: string
 ): Promise<void> {
   await createNotification({
-    userId: mechanicId,
+    userId: await mechanicUserId(mechanicId),
     type: 'booking_confirmed',
     title: 'Booking Confirmed',
     body: `${customerName} has booked an appointment.`,
@@ -58,7 +65,7 @@ export async function sendNewReviewNotification(
   rating: number
 ): Promise<void> {
   await createNotification({
-    userId: mechanicId,
+    userId: await mechanicUserId(mechanicId),
     type: 'new_review',
     title: 'New Review',
     body: `You received a ${rating}-star review.`,
@@ -86,7 +93,7 @@ export async function sendAdditionalWorkResponseNotification(
   approved: boolean
 ): Promise<void> {
   await createNotification({
-    userId: mechanicId,
+    userId: await mechanicUserId(mechanicId),
     type: 'additional_work_response',
     title: approved ? 'Additional Work Approved' : 'Additional Work Declined',
     body: approved

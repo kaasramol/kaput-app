@@ -8,6 +8,7 @@ import { signInWithEmail, signInWithGoogle } from '@/lib/auth';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, type DemoRole } from '@/lib/demo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -37,6 +38,19 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemo = async (role: DemoRole) => {
+    setError('');
+    setLoading(true);
+    try {
+      await signInWithEmail(DEMO_ACCOUNTS[role].email, DEMO_PASSWORD);
+      router.replace('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Demo sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogle = async () => {
     setError('');
     setLoading(true);
@@ -53,6 +67,27 @@ export default function LoginPage() {
   return (
     <Card>
       <h1 className="mb-6 text-center text-2xl font-bold text-text-primary">Welcome Back</h1>
+
+      <div className="mb-6 rounded-[var(--radius-md)] border border-accent/30 bg-accent/10 p-4">
+        <p className="text-sm font-medium text-text-primary">Just looking around?</p>
+        <p className="mt-1 text-xs text-text-secondary">
+          Explore Kaput with a demo account. No sign-up needed.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {(Object.keys(DEMO_ACCOUNTS) as DemoRole[]).map((role) => (
+            <Button
+              key={role}
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={loading}
+              onClick={() => handleDemo(role)}
+            >
+              Demo as {DEMO_ACCOUNTS[role].label.toLowerCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {error && (
         <div className="mb-4 rounded-[var(--radius-sm)] bg-error/10 px-4 py-3 text-sm text-error">

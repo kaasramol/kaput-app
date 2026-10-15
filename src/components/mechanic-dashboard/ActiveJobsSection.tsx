@@ -30,14 +30,18 @@ export function ActiveJobsSection({ bookings: initialBookings }: ActiveJobsSecti
     .filter((b) => b.status === 'completed' || b.status === 'cancelled')
     .slice(0, 5);
 
-  async function handleStatusUpdate(bookingId: string, newStatus: 'in_progress' | 'completed') {
+  async function handleStatusUpdate(
+    bookingId: string,
+    newStatus: 'in_progress' | 'completed'
+  ): Promise<boolean> {
     try {
       await updateBookingStatus(bookingId, newStatus);
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
       );
+      return true;
     } catch {
-      // Status update failed
+      return false;
     }
   }
 
@@ -89,11 +93,12 @@ function BookingRow({
   onStatusUpdate,
 }: {
   booking: Booking;
-  onStatusUpdate?: (bookingId: string, status: 'in_progress' | 'completed') => void;
+  onStatusUpdate?: (bookingId: string, status: 'in_progress' | 'completed') => Promise<boolean>;
 }) {
   const [updating, setUpdating] = useState(false);
   const [showAdditionalWork, setShowAdditionalWork] = useState(false);
   const [localBooking, setLocalBooking] = useState(booking);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const badge = STATUS_BADGE[localBooking.status];
 
   const pendingRequests = (localBooking.additionalWork ?? []).filter((r) => r.status === 'pending').length;
@@ -101,7 +106,13 @@ function BookingRow({
   async function handleUpdate(status: 'in_progress' | 'completed') {
     if (!onStatusUpdate) return;
     setUpdating(true);
-    await onStatusUpdate(localBooking.id, status);
+    setUpdateError(null);
+    const ok = await onStatusUpdate(localBooking.id, status);
+    if (ok) {
+      setLocalBooking((prev) => ({ ...prev, status }));
+    } else {
+      setUpdateError('Could not update the job status. Please try again.');
+    }
     setUpdating(false);
   }
 
@@ -175,6 +186,7 @@ function BookingRow({
           </Link>
         </div>
       )}
+      {updateError && <p className="mt-2 text-xs text-error">{updateError}</p>}
 
       <AdditionalWorkModal
         open={showAdditionalWork}

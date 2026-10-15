@@ -14,6 +14,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [sending, setSending] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -35,19 +36,20 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     if ((!text.trim() && !imageFile) || sending || disabled) return;
 
     setSending(true);
+    setUploadError(null);
     try {
       let uploadedUrl: string | undefined;
 
       if (imageFile) {
-        const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-        const { getFirebaseStorage, getFirebaseAuth } = await import('@/lib/firebase');
-        const storage = getFirebaseStorage();
+        const { getFirebaseAuth } = await import('@/lib/firebase');
+        const { uploadChatImage } = await import('@/lib/storage');
         const uid = getFirebaseAuth().currentUser?.uid;
         if (!uid) throw new Error('Must be signed in to upload images');
-        const path = `chat/${uid}/${Date.now()}_${imageFile.name}`;
-        const storageRef = ref(storage, path);
-        await uploadBytes(storageRef, imageFile);
-        uploadedUrl = await getDownloadURL(storageRef);
+        uploadedUrl = (await uploadChatImage(uid, imageFile)) ?? undefined;
+        if (!uploadedUrl) {
+          setUploadError('Image upload is unavailable right now.');
+          if (!text.trim()) return;
+        }
       }
 
       await onSend(text.trim() || (uploadedUrl ? '📷 Image' : ''), uploadedUrl);
@@ -69,6 +71,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   return (
     <div className="border-t border-border bg-bg-secondary">
+      {uploadError && <p className="mx-4 mt-2 text-xs text-error">{uploadError}</p>}
       {/* Image preview */}
       {imagePreview && (
         <div className="relative mx-4 mt-3 inline-block">

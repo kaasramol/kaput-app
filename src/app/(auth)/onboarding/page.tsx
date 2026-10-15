@@ -27,7 +27,7 @@ const SERVICE_OPTIONS = [
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function OnboardingPage() {
-  const { firebaseUser, loading: authLoading } = useAuth();
+  const { firebaseUser, user, loading: authLoading, refreshUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = (searchParams.get('role') as UserRole) || 'car_owner';
@@ -62,10 +62,14 @@ export default function OnboardingPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && !firebaseUser) {
+    if (authLoading) return;
+    if (!firebaseUser) {
       router.replace('/login');
+    } else if (user) {
+      // Already onboarded; nothing to do here.
+      router.replace(user.role === 'mechanic' ? '/dashboard/mechanic' : '/dashboard');
     }
-  }, [authLoading, firebaseUser, router]);
+  }, [authLoading, firebaseUser, user, router]);
 
   if (authLoading || !firebaseUser) {
     return (
@@ -115,6 +119,7 @@ export default function OnboardingPage() {
           model,
           year: parseInt(year, 10),
         });
+        await refreshUser();
         router.replace('/dashboard');
       } else {
         const activeHours: Record<string, { open: string; close: string }> = {};
@@ -162,6 +167,7 @@ export default function OnboardingPage() {
           });
         }
 
+        await refreshUser();
         router.replace('/dashboard/mechanic');
       }
     } catch (err) {

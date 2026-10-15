@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/hooks/useChat';
-import { getBookingById } from '@/lib/firestore-queries';
+import { getBookingById, getMechanicById } from '@/lib/firestore-queries';
 import { getUserDoc } from '@/lib/firestore-helpers';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageBubble } from '@/components/chat/MessageBubble';
 import { ChatInput } from '@/components/chat/ChatInput';
-import type { Booking, User as UserType } from '@/types';
+import type { Booking } from '@/types';
 
 interface ChatContentProps {
   bookingId: string;
@@ -23,7 +23,7 @@ export function ChatContent({ bookingId }: ChatContentProps) {
   const { user } = useAuth();
   const { messages, loading: chatLoading, error: chatError, sendMessage } = useChat(bookingId, user?.uid);
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [otherUser, setOtherUser] = useState<UserType | null>(null);
+  const [otherName, setOtherName] = useState('');
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,9 +39,15 @@ export function ChatContent({ bookingId }: ChatContentProps) {
         if (!cancelled && b) {
           setBooking(b);
           // Determine the other user in the conversation
-          const otherUid = b.carOwnerId === user!.uid ? b.mechanicId : b.carOwnerId;
-          const otherUserDoc = await getUserDoc(otherUid);
-          if (!cancelled) setOtherUser(otherUserDoc);
+          // booking.mechanicId is a mechanic *profile* id, not a user id, so the
+          // car owner sees the shop name; the mechanic sees the owner's name.
+          if (b.carOwnerId === user!.uid) {
+            const shop = await getMechanicById(b.mechanicId);
+            if (!cancelled) setOtherName(shop?.businessName ?? 'Mechanic');
+          } else {
+            const ownerDoc = await getUserDoc(b.carOwnerId);
+            if (!cancelled) setOtherName(ownerDoc?.displayName ?? 'Customer');
+          }
         } else if (!cancelled && !b) {
           setDataError('Booking not found.');
         }
@@ -86,7 +92,6 @@ export function ChatContent({ bookingId }: ChatContentProps) {
     );
   }
 
-  const otherName = otherUser?.displayName ?? 'User';
   const isChatDisabled = booking.status === 'cancelled' || booking.status === 'completed';
 
   return (

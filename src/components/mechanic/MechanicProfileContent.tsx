@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { ServiceList } from '@/components/mechanic/ServiceList';
 import { ReviewCard } from '@/components/mechanic/ReviewCard';
+import { getDayHours } from '@/lib/utils';
 import type { MechanicProfile, Review } from '@/types';
 
 interface MechanicProfileContentProps {
@@ -101,6 +102,11 @@ export function MechanicProfileContent({ mechanicId }: MechanicProfileContentPro
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-text-primary">{mechanic.businessName}</h1>
+          {mechanic.isDemo && (
+            <p className="mt-1 text-xs text-text-muted">
+              Demo listing. This sample shop shows how Kaput works and is not a real business.
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-text-secondary">
             <span className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" />
@@ -152,7 +158,7 @@ export function MechanicProfileContent({ mechanicId }: MechanicProfileContentPro
           ) : (
             <div className="space-y-1.5">
               {DAY_ORDER.map((day) => {
-                const h = mechanic.hours[day];
+                const h = getDayHours(mechanic.hours, day);
                 return (
                   <div key={day} className="flex justify-between text-sm">
                     <span className="text-text-secondary">{DAY_LABELS[day]}</span>

@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getVehiclesByOwner } from '@/lib/firestore-queries';
 import { updateUserDoc, createVehicleDoc, deleteVehicleDoc } from '@/lib/firestore-helpers';
 import { changePassword } from '@/lib/auth';
+import { isDemoEmail } from '@/lib/demo';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -80,6 +81,10 @@ export function SettingsContent() {
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
     setPasswordMsg(null);
+    if (isDemoEmail(firebaseUser?.email)) {
+      setPasswordMsg({ type: 'error', text: 'The password of a shared demo account cannot be changed.' });
+      return;
+    }
     if (newPassword.length < 6) {
       setPasswordMsg({ type: 'error', text: 'New password must be at least 6 characters.' });
       return;

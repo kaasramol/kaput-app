@@ -48,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let mechanicPages: MetadataRoute.Sitemap = [];
   try {
     const mechanics = await getMechanics();
-    mechanicPages = mechanics.map((m) => ({
+    mechanicPages = mechanics.filter((m) => !m.isDemo).map((m) => ({
       url: `${BASE_URL}/mechanic/${m.id}`,
       lastModified: m.updatedAt?.toDate?.() ?? new Date(),
       changeFrequency: "weekly" as const,

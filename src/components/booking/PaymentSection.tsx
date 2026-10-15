@@ -7,7 +7,7 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import { CreditCard, Shield } from 'lucide-react';
+import { CreditCard, FlaskConical, Shield } from 'lucide-react';
 import { getStripe } from '@/lib/stripe';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -106,7 +106,63 @@ function CheckoutForm({ amount, onPaymentComplete }: {
   );
 }
 
-export function PaymentSection({
+const STRIPE_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
+function DemoCheckout({ amount, onPaymentComplete }: {
+  amount: number;
+  onPaymentComplete: (paymentId: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleDemoPay() {
+    setLoading(true);
+    // Simulate network latency so the flow feels like a real checkout.
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    onPaymentComplete(`demo_${Date.now()}`);
+    setLoading(false);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-warning/30 bg-warning/10 p-3">
+        <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+        <p className="text-sm text-text-secondary">
+          Demo mode. No card is charged. In production this step uses Stripe Elements
+          and routes funds to the mechanic through Stripe Connect.
+        </p>
+      </div>
+      <Button onClick={handleDemoPay} loading={loading} disabled={loading} className="w-full" size="lg">
+        <CreditCard className="h-4 w-4" />
+        Simulate payment of {formatCurrency(amount)}
+      </Button>
+    </div>
+  );
+}
+
+export function PaymentSection(props: PaymentSectionProps) {
+  if (!STRIPE_CONFIGURED) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-accent-light" />
+            <h3 className="font-semibold text-text-primary">Payment</h3>
+          </div>
+          <div className="rounded-[var(--radius-md)] bg-bg-secondary p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Total Due</span>
+              <span className="text-2xl font-bold text-text-primary">{formatCurrency(props.amount)}</span>
+            </div>
+          </div>
+          <DemoCheckout amount={props.amount} onPaymentComplete={props.onPaymentComplete} />
+        </div>
+      </Card>
+    );
+  }
+  return <StripePaymentSection {...props} />;
+}
+
+function StripePaymentSection({
   amount,
   bookingId,
   carOwnerId,

@@ -7,6 +7,7 @@ import {
   arrayUnion,
   collection,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '@/lib/firebase';
 import type { User, UserRole, Vehicle, MechanicProfile, Quote, QuoteItem, QuoteResponse, Booking, BookingType, AdditionalWorkItem, AdditionalWorkRequest, Message, Review } from '@/types';
@@ -118,8 +119,9 @@ export async function createMechanicProfileDoc(params: CreateMechanicProfilePara
     description: params.description ?? '',
     rating: 0,
     reviewCount: 0,
-    subscriptionStatus: 'inactive',
-    subscriptionPlan: '',
+    // Every new shop starts on the 14-day free trial (no card required).
+    subscriptionStatus: 'trial',
+    subscriptionPlan: 'starter',
     createdAt: serverTimestamp() as MechanicProfile['createdAt'],
     updatedAt: serverTimestamp() as MechanicProfile['updatedAt'],
   };
@@ -211,7 +213,8 @@ export async function submitQuoteResponse(params: SubmitQuoteResponseParams): Pr
     items: params.items,
     totalCost: params.totalCost,
     estimatedTime: params.estimatedTime,
-    respondedAt: serverTimestamp() as QuoteResponse['respondedAt'],
+    // serverTimestamp() is not allowed inside arrays, so use the client clock.
+    respondedAt: Timestamp.now(),
   };
 
   await updateDoc(ref, {
@@ -426,7 +429,8 @@ export async function requestAdditionalWork(params: RequestAdditionalWorkParams)
     items: params.items,
     totalCost: params.totalCost,
     status: 'pending',
-    createdAt: serverTimestamp() as AdditionalWorkRequest['createdAt'],
+    // serverTimestamp() is not allowed inside arrays, so use the client clock.
+    createdAt: Timestamp.now(),
   };
 
   await updateDoc(ref, {

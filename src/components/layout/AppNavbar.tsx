@@ -8,16 +8,20 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { logOut } from '@/lib/auth';
 
-const appLinks = [
-  { href: '/map', label: 'Map', icon: Map },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
+function getAppLinks(dashboardHref: string) {
+  return [
+    { href: '/map', label: 'Map', icon: Map },
+    { href: dashboardHref, label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
+}
 
 export function AppNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+  const dashboardHref = user?.role === 'mechanic' ? '/dashboard/mechanic' : '/dashboard';
+  const appLinks = getAppLinks(dashboardHref);
 
   const handleSignOut = async () => {
     await logOut();
@@ -29,7 +33,7 @@ export function AppNavbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={dashboardHref} className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
             <Wrench className="h-5 w-5 text-white" />
           </div>
